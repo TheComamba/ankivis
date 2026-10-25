@@ -1,5 +1,7 @@
 """Command line interface for ankivis."""
 
+import sqlite3
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -7,6 +9,7 @@ import typer
 
 from ankivis.db import ProfileError, default_collection_path, open_collection
 from ankivis.decks import Deck, deck_ids, find_deck, format_deck_list, list_decks, pick_deck
+from ankivis.history import format_interval, intervals_at, largest_intervals
 
 app = typer.Typer(
     help="Visualise learning progress for an Anki deck.",
@@ -39,13 +42,17 @@ def main() -> None:
     """Visualise learning progress for an Anki deck."""
 
 
-def _load_decks(collection: Path | None, profile: str | None) -> list[Deck]:
+def _open(collection: Path | None, profile: str | None) -> sqlite3.Connection:
     try:
         path = collection if collection is not None else default_collection_path(profile)
-        conn = open_collection(path)
+        return open_collection(path)
     except (FileNotFoundError, ProfileError) as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(1) from exc
+
+
+def _load_decks(collection: Path | None, profile: str | None) -> list[Deck]:
+    conn = _open(collection, profile)
     try:
         return list_decks(conn)
     finally:
@@ -93,3 +100,43 @@ def decks_command(
     ids = deck_ids(all_decks, selected, include_subdecks=subdecks)
     typer.echo(f"Selected: {selected.name} ({selected.id})")
     typer.echo("Deck ids: " + ", ".join(str(i) for i in ids))
+
+
+@app.command("intervals")
+def intervals_command(
+    on: Annotated[
+        datetime,
+        typer.Option(
+            "--date",
+            help="Date (YYYY-MM-DD) whose end-of-day state is shown.",
+            formats=["%Y-%m-%d"],
+        ),
+    ],
+    collection: CollectionOption = None,
+    profile: ProfileOption = None,
+    deck: Annotated[
+        str | None, typer.Option("--deck", "-d", help="Select a deck by name or id.")
+    ] = None,
+    subdecks: Annotated[
+        bool, typer.Option("--subdecks/--no-subdecks", help="Include subdecks of the selection.")
+    ] = True,
+    top: Annotated[int, typer.Option("--top", "-n", min=1, help="Number of cards to show.")] = 10,
+) -> None:
+    """Print the cards with the largest intervals on a specific date."""
+    conn = _open(collection, profile)
+    try:
+        all_decks = list_decks(conn)
+        selected = select_deck(all_decks, deck)
+        ids = deck_ids(all_decks, selected, include_subdecks=subdecks)
+        intervals = intervals_at(conn, ids, on.date())
+    finally:
+        conn.close()
+    day = on.date().isoformat()
+    largest = largest_intervals(intervals, top)
+    if not largest:
+        typer.echo(f"No learned cards in {selected.name} on {day}.")
+        return
+    typer.echo(f"Largest intervals in {selected.name} on {day}:")
+    width = len(str(len(largest)))
+    for rank, (cid, ivl) in enumerate(largest, start=1):
+        typer.echo(f"{rank:>{width}}. card {cid}: {format_interval(ivl)}")

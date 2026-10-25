@@ -80,6 +80,23 @@ def intervals_at(
     return {int(cid): _to_days(ivl, rtype) for cid, ivl, rtype in rows}
 
 
+def largest_intervals(intervals: dict[int, float | None], n: int = 10) -> list[tuple[int, float]]:
+    """Return the *n* ``(card_id, interval)`` pairs with the largest intervals.
+
+    Unlearned cards (``None``) are skipped. Ties are broken by card id (oldest first).
+    """
+    learned = [(cid, ivl) for cid, ivl in intervals.items() if ivl is not None]
+    learned.sort(key=lambda item: (-item[1], item[0]))
+    return learned[: max(n, 0)]
+
+
+def format_interval(ivl: float) -> str:
+    """Human-readable interval: whole days as ``"N d"``, learning steps in minutes."""
+    if ivl >= 1:
+        return f"{ivl:g} d"
+    return f"{ivl * SECONDS_PER_DAY / 60:g} min"
+
+
 def first_review_date(
     conn: sqlite3.Connection,
     deck_ids: Sequence[int],

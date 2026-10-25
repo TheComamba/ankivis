@@ -8,7 +8,13 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from ankivis.history import end_of_day_ms, first_review_date, intervals_at
+from ankivis.history import (
+    end_of_day_ms,
+    first_review_date,
+    format_interval,
+    intervals_at,
+    largest_intervals,
+)
 
 BERLIN = ZoneInfo("Europe/Berlin")
 DECK = 1700000000002
@@ -206,6 +212,28 @@ def test_reviews_of_other_cards_do_not_leak(conn: sqlite3.Connection) -> None:
     add_review(conn, ms(2024, 3, 3), a, 6)
     add_review(conn, ms(2024, 3, 4), b, 2)
     assert intervals_at(conn, [DECK], DAY, BERLIN) == {a: 6.0, b: 2.0}
+
+
+# --- largest_intervals / format_interval -----------------------------------------------
+
+
+def test_largest_intervals_sorted_and_limited() -> None:
+    intervals = {i: float(i) for i in range(1, 16)}
+    assert largest_intervals(intervals) == [(i, float(i)) for i in range(15, 5, -1)]
+    assert largest_intervals(intervals, 3) == [(15, 15.0), (14, 14.0), (13, 13.0)]
+
+
+def test_largest_intervals_skips_unlearned_and_breaks_ties_by_id() -> None:
+    intervals = {5: 2.0, 3: None, 2: 2.0, 9: 0.01}
+    assert largest_intervals(intervals) == [(2, 2.0), (5, 2.0), (9, 0.01)]
+    assert largest_intervals({1: None}) == []
+    assert largest_intervals({}) == []
+
+
+def test_format_interval() -> None:
+    assert format_interval(42.0) == "42 d"
+    assert format_interval(1.0) == "1 d"
+    assert format_interval(600 / 86400) == "10 min"
 
 
 # --- first_review_date -----------------------------------------------------------------
