@@ -12,6 +12,14 @@ from ankivis.db import ProfileError, default_collection_path, open_collection
 from ankivis.decks import Deck, deck_ids, find_deck, format_deck_list, list_decks, pick_deck
 from ankivis.export import days_to_export, export_days
 from ankivis.history import format_interval, intervals_at, largest_intervals
+from ankivis.video import (
+    DEFAULT_BACKGROUND,
+    DEFAULT_FPS,
+    NoFramesError,
+    frame_paths,
+    make_video,
+    parse_color,
+)
 
 app = typer.Typer(
     help="Visualise learning progress for an Anki deck.",
@@ -240,3 +248,78 @@ def export_command(
         conn.close()
     noun = "image" if len(days) == 1 else "images"
     typer.echo(f"Wrote {len(days)} {noun} to {out}")
+
+
+def _parse_background(value: str) -> tuple[int, int, int]:
+    try:
+        return parse_color(value)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+
+@app.command("video")
+def video_command(
+    img_dir: Annotated[
+        Path,
+        typer.Option(
+            "--in",
+            "-i",
+            help="Directory with the YYYY-MM-DD.png images (see the export command).",
+            file_okay=False,
+        ),
+    ],
+    out: Annotated[
+        Path,
+        typer.Option("--out", "-o", help="Output MP4 file.", dir_okay=False),
+    ] = Path("progress.mp4"),
+    fps: Annotated[
+        float, typer.Option("--fps", min=0.01, help="Frames (days) per second.")
+    ] = DEFAULT_FPS,
+    background: Annotated[
+        str,
+        typer.Option(
+            "--background",
+            "-b",
+            help="Colour behind transparent areas (name or #rrggbb); MP4 has no transparency.",
+        ),
+    ] = DEFAULT_BACKGROUND,
+    start: Annotated[
+        datetime | None,
+        typer.Option(
+            "--from",
+            help="First date (YYYY-MM-DD, inclusive). Defaults to the first image.",
+            formats=["%Y-%m-%d"],
+            show_default=False,
+        ),
+    ] = None,
+    end: Annotated[
+        datetime | None,
+        typer.Option(
+            "--until",
+            help="Last date (YYYY-MM-DD, inclusive). Defaults to the last image.",
+            formats=["%Y-%m-%d"],
+            show_default=False,
+        ),
+    ] = None,
+) -> None:
+    """Combine the daily images into an H.264 MP4 video, in chronological order."""
+    bg = _parse_background(background)
+    first = start.date() if start is not None else None
+    last = end.date() if end is not None else None
+    try:
+        total = len(frame_paths(img_dir, first, last))
+        with typer.progressbar(length=total, label="Encoding") as bar:
+            count = make_video(
+                img_dir,
+                out,
+                fps=fps,
+                background=bg,
+                start=first,
+                end=last,
+                on_frame=lambda _: bar.update(1),
+            )
+    except (NoFramesError, ValueError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    noun = "frame" if count == 1 else "frames"
+    typer.echo(f"Wrote {count} {noun} to {out}")
