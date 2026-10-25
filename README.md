@@ -46,3 +46,7 @@ _scripts/run.sh decks --pick                            # pick interactively (nu
 _scripts/run.sh decks --deck "Spanish::Verbs"           # select by name or id
 _scripts/run.sh decks --deck Spanish --no-subdecks      # exclude subdecks
 ```
+
+### Disclaimer
+
+Almost all of the code in this repository is generated. The human owner merely provided guidance, steering, and casual PR reviews. This seems an appropriate working model for an inconsequential toy project.
