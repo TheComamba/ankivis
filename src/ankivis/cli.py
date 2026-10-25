@@ -1,7 +1,7 @@
 """Command line interface for ankivis."""
 
 import sqlite3
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -59,6 +59,11 @@ def _load_decks(collection: Path | None, profile: str | None) -> list[Deck]:
         conn.close()
 
 
+def _today() -> date:
+    """Today in the system's local timezone (separate function so tests can patch it)."""
+    return date.today()
+
+
 def select_deck(decks: list[Deck], deck: str | None) -> Deck:
     """Resolve ``--deck NAME|ID`` or prompt interactively when *deck* is ``None``."""
     if deck is None:
@@ -104,14 +109,6 @@ def decks_command(
 
 @app.command("intervals")
 def intervals_command(
-    on: Annotated[
-        datetime,
-        typer.Option(
-            "--date",
-            help="Date (YYYY-MM-DD) whose end-of-day state is shown.",
-            formats=["%Y-%m-%d"],
-        ),
-    ],
     collection: CollectionOption = None,
     profile: ProfileOption = None,
     deck: Annotated[
@@ -121,17 +118,27 @@ def intervals_command(
         bool, typer.Option("--subdecks/--no-subdecks", help="Include subdecks of the selection.")
     ] = True,
     top: Annotated[int, typer.Option("--top", "-n", min=1, help="Number of cards to show.")] = 10,
+    on: Annotated[
+        datetime | None,
+        typer.Option(
+            "--date",
+            help="Date (YYYY-MM-DD) whose end-of-day state is shown. Defaults to today.",
+            formats=["%Y-%m-%d"],
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
-    """Print the cards with the largest intervals on a specific date."""
+    """Print the cards with the largest intervals on a specific date (default: today)."""
+    target = on.date() if on is not None else _today()
     conn = _open(collection, profile)
     try:
         all_decks = list_decks(conn)
         selected = select_deck(all_decks, deck)
         ids = deck_ids(all_decks, selected, include_subdecks=subdecks)
-        intervals = intervals_at(conn, ids, on.date())
+        intervals = intervals_at(conn, ids, target)
     finally:
         conn.close()
-    day = on.date().isoformat()
+    day = target.isoformat()
     largest = largest_intervals(intervals, top)
     if not largest:
         typer.echo(f"No learned cards in {selected.name} on {day}.")

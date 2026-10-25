@@ -1,7 +1,7 @@
 import sqlite3
 import subprocess
 import sys
-from datetime import datetime
+from datetime import date, datetime
 
 from typer.testing import CliRunner
 
@@ -161,6 +161,26 @@ def test_intervals_without_learned_cards(collection_path):
     )
     assert result.exit_code == 0, result.output
     assert "No learned cards in Spanish on 2024-03-10." in result.output
+
+
+def test_intervals_defaults_to_today(collection_path, monkeypatch):
+    cids = _fill_reviews(collection_path)
+    monkeypatch.setattr("ankivis.cli._today", lambda: date(2024, 3, 10))
+    result = runner.invoke(app, ["intervals", "-c", str(collection_path), "-d", "Spanish"])
+    assert result.exit_code == 0, result.output
+    assert "Largest intervals in Spanish on 2024-03-10:" in result.output
+    assert f"1. card {cids[11]}: 12 d" in result.output
+
+
+def test_intervals_today_includes_all_reviews(collection_path):
+    # End of today lies in the future; every existing review must still be counted.
+    cids = _fill_reviews(collection_path)
+    result = runner.invoke(app, ["intervals", "-c", str(collection_path), "-d", "Spanish"])
+    assert result.exit_code == 0, result.output
+    assert f"on {date.today().isoformat()}:" in result.output
+    # All cards now have the (tied) interval 999; ties are ordered by card id.
+    assert f" 1. card {cids[0]}: 999 d" in result.output
+    assert f"10. card {cids[9]}: 999 d" in result.output
 
 
 def test_intervals_rejects_invalid_date(collection_path):
