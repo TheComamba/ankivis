@@ -392,6 +392,60 @@ def test_video_rejects_zero_fps(tmp_path):
     assert result.exit_code != 0
 
 
+def test_video_gif_from_extension(tmp_path):
+    frames = tmp_path / "frames"
+    _write_frames(frames, ["2024-01-01.png", "2024-01-02.png"])
+    out = tmp_path / "progress.gif"
+    result = runner.invoke(app, ["video", "--in", str(frames), "--out", str(out)])
+    assert result.exit_code == 0, result.output
+    assert out.read_bytes()[:6] == b"GIF89a"
+    assert "Wrote 2 frames" in result.output
+
+
+def test_video_gif_format_default_output(tmp_path):
+    frames = tmp_path / "frames"
+    _write_frames(frames, ["2024-01-01.png"])
+    result = runner.invoke(app, ["video", "--in", str(frames), "--format", "GIF"])
+    assert result.exit_code == 0, result.output
+    assert (frames / "progress.gif").read_bytes()[:6] == b"GIF89a"
+    assert not (frames / "progress.mp4").exists()
+
+
+def test_video_format_overrides_unknown_extension(tmp_path):
+    frames = tmp_path / "frames"
+    _write_frames(frames, ["2024-01-01.png"])
+    out = tmp_path / "anim.bin"
+    result = runner.invoke(app, ["video", "-i", str(frames), "-o", str(out), "-f", "gif"])
+    assert result.exit_code == 0, result.output
+    assert out.read_bytes()[:6] == b"GIF89a"
+
+
+def test_video_format_contradicting_extension(tmp_path):
+    frames = tmp_path / "frames"
+    _write_frames(frames, ["2024-01-01.png"])
+    out = tmp_path / "v.mp4"
+    result = runner.invoke(app, ["video", "-i", str(frames), "-o", str(out), "-f", "gif"])
+    assert result.exit_code != 0
+    assert "does not match" in result.output
+    assert not out.exists()
+
+
+def test_video_invalid_format(tmp_path):
+    frames = tmp_path / "frames"
+    _write_frames(frames, ["2024-01-01.png"])
+    result = runner.invoke(app, ["video", "--in", str(frames), "--format", "avi"])
+    assert result.exit_code != 0
+
+
+def test_video_gif_rejects_too_high_fps(tmp_path):
+    frames = tmp_path / "frames"
+    _write_frames(frames, ["2024-01-01.png"])
+    args = ["video", "--in", str(frames), "--format", "gif", "--fps", "60"]
+    result = runner.invoke(app, args)
+    assert result.exit_code == 1
+    assert "50 fps" in result.output
+
+
 def test_module_is_executable():
     result = subprocess.run(
         [sys.executable, "-m", "ankivis", "--help"],

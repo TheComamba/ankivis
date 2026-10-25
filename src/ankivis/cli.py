@@ -16,9 +16,11 @@ from ankivis.video import (
     DEFAULT_BACKGROUND,
     DEFAULT_FPS,
     NoFramesError,
+    VideoFormat,
     frame_paths,
     make_video,
     parse_color,
+    resolve_format,
 )
 
 app = typer.Typer(
@@ -273,8 +275,20 @@ def video_command(
         typer.Option(
             "--out",
             "-o",
-            help="Output MP4 file. Defaults to progress.mp4 in the --in directory.",
+            help="Output file. Defaults to progress.mp4 (or progress.gif with --format gif) "
+            "in the --in directory.",
             dir_okay=False,
+            show_default=False,
+        ),
+    ] = None,
+    fmt: Annotated[
+        VideoFormat | None,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Output format: H.264 MP4 or looping animated GIF. "
+            "Defaults to the --out extension, otherwise mp4.",
+            case_sensitive=False,
             show_default=False,
         ),
     ] = None,
@@ -286,7 +300,8 @@ def video_command(
         typer.Option(
             "--background",
             "-b",
-            help="Colour behind transparent areas (name or #rrggbb); MP4 has no transparency.",
+            help="Colour behind transparent areas (name or #rrggbb); "
+            "the output has no transparency.",
         ),
     ] = DEFAULT_BACKGROUND,
     start: Annotated[
@@ -308,10 +323,14 @@ def video_command(
         ),
     ] = None,
 ) -> None:
-    """Combine the daily images into an H.264 MP4 video, in chronological order."""
+    """Combine the daily images into an MP4 video or animated GIF, in chronological order."""
     bg = _parse_background(background)
+    try:
+        video_format = resolve_format(out, fmt)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc), param_hint="'--format'") from exc
     if out is None:
-        out = img_dir / "progress.mp4"
+        out = img_dir / f"progress.{video_format.value}"
     first = start.date() if start is not None else None
     last = end.date() if end is not None else None
     try:
@@ -325,6 +344,7 @@ def video_command(
                 start=first,
                 end=last,
                 on_frame=lambda _: bar.update(1),
+                fmt=video_format,
             )
     except (NoFramesError, ValueError) as exc:
         typer.echo(f"Error: {exc}", err=True)
