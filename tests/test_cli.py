@@ -214,6 +214,44 @@ def test_chart_writes_png(collection_path, tmp_path):
     assert str(out) in result.output
 
 
+def test_chart_size_option(collection_path, tmp_path):
+    _fill_reviews(collection_path)
+    out = tmp_path / "pie.png"
+    args = ["chart", "-c", str(collection_path), "-d", "Spanish", "--out", str(out)]
+    result = runner.invoke(app, [*args, "--date", "2024-03-10", "--size", "400"])
+    assert result.exit_code == 0, result.output
+    assert imageio.imread(out).shape[:2] == (400, 400)
+
+
+def test_chart_default_size(collection_path, tmp_path):
+    _fill_reviews(collection_path)
+    out = tmp_path / "pie.png"
+    args = ["chart", "-c", str(collection_path), "-d", "Spanish", "--out", str(out)]
+    result = runner.invoke(app, [*args, "--date", "2024-03-10"])
+    assert result.exit_code == 0, result.output
+    assert imageio.imread(out).shape[:2] == (800, 800)
+
+
+def test_chart_rejects_too_small_size(collection_path, tmp_path):
+    out = tmp_path / "pie.png"
+    args = ["chart", "-c", str(collection_path), "-d", "Spanish", "--out", str(out)]
+    result = runner.invoke(app, [*args, "--size", "10"])
+    assert result.exit_code != 0
+    assert not out.exists()
+
+
+def test_export_size_option(collection_path, tmp_path, monkeypatch):
+    _fill_reviews(collection_path)
+    out = tmp_path / "frames"
+    monkeypatch.setattr("ankivis.cli._today", lambda: date(2024, 2, 3))
+    result = runner.invoke(
+        app,
+        ["export", "-c", str(collection_path), "-d", "Spanish", "--out", str(out), "-s", "256"],
+    )
+    assert result.exit_code == 0, result.output
+    assert imageio.imread(out / "2024-02-01.png").shape[:2] == (256, 256)
+
+
 def test_chart_default_file_name(collection_path, tmp_path, monkeypatch):
     _fill_reviews(collection_path)
     monkeypatch.chdir(tmp_path)

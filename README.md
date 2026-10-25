@@ -49,8 +49,10 @@ _scripts/run.sh decks --deck Spanish --no-subdecks      # exclude subdecks
 
 ### Pie chart
 
-`chart` renders the state of a deck at the end of a day as a pie chart PNG (800×800 px,
-transparent background). Each card is a slice; cards are sorted by interval, so the colours
+`chart` renders the state of a deck at the end of a day as a square pie chart PNG with a
+transparent background. It is 800×800 px by default; `--size` (`-s`) sets another width and
+height in pixels (at least 100), and the whole layout including text scales with it. Each card
+is a slice; cards are sorted by interval, so the colours
 form a gradient: red (≤ 1 day) → orange → yellow → green → blue (≥ 2 years), on a log scale.
 Cards that exist but have not been learned yet are transparent. A legend below the pie shows
 the colours of representative intervals (1 day, 1 week, 1 month, 3 months, 1 year, 2 years,
@@ -67,11 +69,13 @@ _scripts/run.sh chart --deck Spanish --date 2024-03-10 --out spanish.png
 review up to the date given with `--until` (inclusive). It defaults to yesterday, because
 today is not over yet; dates in the future are rejected. Files are named `YYYY-MM-DD.png`.
 Days whose image already exists are skipped, so running the command again only adds the new
-days. To re-render a day, delete its image.
+days. To re-render a day, delete its image. `--size` works as for `chart`; since all frames of a
+video must have the same size, delete existing images before exporting with a different size.
 
 ```sh
 _scripts/run.sh export --deck Spanish --out frames/                     # up to yesterday
 _scripts/run.sh export --deck Spanish --out frames/ --until 2024-03-10
+_scripts/run.sh export --deck Spanish --out frames/ --size 1080         # 1080×1080 px
 ```
 
 ### Video
