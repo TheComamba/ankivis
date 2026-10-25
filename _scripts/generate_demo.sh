@@ -21,6 +21,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/shared.sh"
 DECK="${DEMO_DECK:-Neo-Quenya}"
 UNTIL="${DEMO_UNTIL:-2024-12-03}"
 FPS="${DEMO_FPS:-10}"
+SIZE="${DEMO_SIZE:-400}"
 GIF="$ROOT_DIR/demo.gif"
 
 ensure_venv
@@ -28,5 +29,5 @@ ensure_venv
 FRAMES_DIR="$(mktemp -d)"
 trap 'rm -rf "$FRAMES_DIR"' EXIT
 
-"$VENV_PYTHON" -m ankivis export --deck "$DECK" --out "$FRAMES_DIR" --until "$UNTIL" "$@"
+"$VENV_PYTHON" -m ankivis export --deck "$DECK" --out "$FRAMES_DIR" --until "$UNTIL" --size "$SIZE" "$@"
 "$VENV_PYTHON" -m ankivis video --in "$FRAMES_DIR" --out "$GIF" --until "$UNTIL" --fps "$FPS"
