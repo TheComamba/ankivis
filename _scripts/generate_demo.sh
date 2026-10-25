@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 # Generate the demo GIF shown in the README (demo.gif) from the Neo-Quenya deck.
+#
+# MAINTAINER ONLY: this script is intended to be run by the repository owner.
+# It relies on the owner's personal Anki collection (a "Neo-Quenya" deck with
+# review history up to 2024-12-03) and will most likely fail for anyone else.
+# To render your own data, use `_scripts/run.sh export ...` instead.
+#
 # The daily frames are rendered into a temporary folder that is removed afterwards.
 # Extra arguments (e.g. --profile NAME or --collection PATH) are passed on to the export command.
 #

@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "_scripts"
-SCRIPTS = ["setup.sh", "run.sh", "lint.sh", "test.sh", "update.sh", "demo.sh"]
+SCRIPTS = ["setup.sh", "run.sh", "lint.sh", "test.sh", "update.sh", "generate_demo.sh"]
 SHARED_LIB = SCRIPTS_DIR / "lib" / "shared.sh"
 
 

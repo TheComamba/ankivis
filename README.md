@@ -14,7 +14,7 @@ All scripts can be called from any directory and use the virtual environment in 
 | `_scripts/lint.sh [--fix]` | Run ruff (lint + format check); `--fix` applies fixes and reformats |
 | `_scripts/test.sh [PYTEST ARGS]` | Run `lint.sh`, then pytest |
 | `_scripts/update.sh` | Upgrade all dependencies to the newest allowed versions |
-| `_scripts/demo.sh [EXPORT ARGS]` | Regenerate `demo.gif` from the Neo-Quenya deck up to 2024-12-03 (frames go to a temporary folder) |
+| `_scripts/generate_demo.sh [EXPORT ARGS]` | **Maintainer only:** regenerate `demo.gif` from the repo owner's Neo-Quenya deck up to 2024-12-03 (frames go to a temporary folder). Depends on the owner's personal Anki collection and will likely fail for anyone else |
 
 Shared logic lives in `_scripts/lib/shared.sh`.
 
