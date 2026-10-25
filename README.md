@@ -52,7 +52,9 @@ _scripts/run.sh decks --deck Spanish --no-subdecks      # exclude subdecks
 `chart` renders the state of a deck at the end of a day as a pie chart PNG (800×800 px,
 transparent background). Each card is a slice; cards are sorted by interval, so the colours
 form a gradient: red (≤ 1 day) → orange → yellow → green → blue (≥ 700 days), on a log scale.
-Cards that exist but have not been learned yet are transparent.
+Cards that exist but have not been learned yet are transparent. A legend below the pie shows
+the colours of representative intervals (1 day, 1 week, 1 month, 3 months, 1 year, 700 days,
+unlearned).
 
 ```sh
 _scripts/run.sh chart --deck Spanish                            # today → ./YYYY-MM-DD.png

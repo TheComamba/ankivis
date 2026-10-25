@@ -2,8 +2,9 @@
 
 Cards are sorted by interval so that the colours flow as a smooth gradient around the pie.
 Cards with the same interval are merged into one wedge. Unlearned cards form a transparent
-wedge at the end. The image has a transparent background and a fixed size, so that the
-frames of a video all match.
+wedge at the end. A legend below the pie shows the colours of representative intervals; its
+entries do not depend on the data. The image has a transparent background and a fixed size,
+so that the frames of a video all match.
 """
 
 from collections import Counter
@@ -13,14 +14,25 @@ from pathlib import Path
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
-from matplotlib.patches import Circle
+from matplotlib.patches import Circle, Patch
 
-from ankivis.colors import interval_color
+from ankivis.colors import MAX_INTERVAL, MIN_INTERVAL, interval_color
 
 FIGSIZE = (8.0, 8.0)  # inches
 DPI = 100
 TEXT_COLOR = "#333333"
 OUTLINE_COLOR = "#999999"
+
+# Representative intervals (days) shown in the legend; ``None`` = unlearned.
+LEGEND_ENTRIES: tuple[tuple[float | None, str], ...] = (
+    (MIN_INTERVAL, f"≤ {MIN_INTERVAL} day"),
+    (7, "1 week"),
+    (30, "1 month"),
+    (90, "3 months"),
+    (365, "1 year"),
+    (MAX_INTERVAL, f"≥ {MAX_INTERVAL} days"),
+    (None, "unlearned"),
+)
 
 Segment = tuple[float | None, int]
 
@@ -45,6 +57,27 @@ def _title(intervals: Mapping[int, float | None], day: date, title: str | None) 
     return f"{heading}\n{total} {noun}, {learned} learned"
 
 
+def _add_legend(fig: Figure) -> None:
+    """Add the fixed interval → colour legend at the bottom of *fig*."""
+    handles = [
+        Patch(
+            facecolor=interval_color(ivl),
+            edgecolor=OUTLINE_COLOR if ivl is None else interval_color(ivl),
+            label=label,
+        )
+        for ivl, label in LEGEND_ENTRIES
+    ]
+    fig.legend(
+        handles=handles,
+        loc="lower center",
+        ncol=4,
+        frameon=False,
+        fontsize=11,
+        labelcolor=TEXT_COLOR,
+        bbox_to_anchor=(0.5, 0.0),
+    )
+
+
 def build_figure(
     intervals: Mapping[int, float | None], day: date, title: str | None = None
 ) -> Figure:
@@ -54,7 +87,8 @@ def build_figure(
     fig.patch.set_alpha(0.0)
     fig.suptitle(_title(intervals, day, title), color=TEXT_COLOR, fontsize=16)
 
-    ax = fig.add_axes((0.05, 0.02, 0.9, 0.86))
+    # Pie centred at the figure centre, leaving room for the title above and legend below.
+    ax = fig.add_axes((0.1, 0.12, 0.8, 0.76))
     ax.set_aspect("equal")
     ax.set_xlim(-1.05, 1.05)
     ax.set_ylim(-1.05, 1.05)
@@ -78,6 +112,7 @@ def build_figure(
         ax.set_ylim(-1.05, 1.05)
     # Outline of the whole pie, so that transparent (unlearned) parts remain visible.
     ax.add_patch(Circle((0, 0), 1.0, fill=False, edgecolor=OUTLINE_COLOR, linewidth=1))
+    _add_legend(fig)
     return fig
 
 

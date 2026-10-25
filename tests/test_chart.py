@@ -6,7 +6,14 @@ import matplotlib.image
 import pytest
 from matplotlib.patches import Wedge
 
-from ankivis.chart import DPI, FIGSIZE, build_figure, pie_segments, render_pie
+from ankivis.chart import (
+    DPI,
+    FIGSIZE,
+    LEGEND_ENTRIES,
+    build_figure,
+    pie_segments,
+    render_pie,
+)
 from ankivis.colors import interval_color
 
 DAY = date(2024, 3, 10)
@@ -87,6 +94,16 @@ def test_dimensions_identical_across_days(tmp_path):
     a = render_pie({1: 1.0}, DAY, tmp_path / "a.png")
     b = render_pie({i: float(i) for i in range(1, 2000)}, date(2025, 1, 1), tmp_path / "b.png")
     assert matplotlib.image.imread(a).shape == matplotlib.image.imread(b).shape
+
+
+@pytest.mark.parametrize("intervals", [{}, {1: 5.0}, {1: None, 2: 400.0}])
+def test_legend_maps_intervals_to_colours(intervals):
+    fig = build_figure(intervals, DAY)
+    (legend,) = fig.legends
+    labels = [t.get_text() for t in legend.get_texts()]
+    assert labels == [label for _, label in LEGEND_ENTRIES]
+    for handle, (ivl, _) in zip(legend.legend_handles, LEGEND_ENTRIES, strict=True):
+        assert handle.get_facecolor() == pytest.approx(interval_color(ivl))
 
 
 def test_render_creates_parent_directories(tmp_path):
