@@ -5,13 +5,41 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
-DEFAULT_PROFILE = "User 1"
 DEFAULT_ANKI_BASE = Path.home() / ".local" / "share" / "Anki2"
+COLLECTION_FILE = "collection.anki2"
 
 
-def default_collection_path(profile: str = DEFAULT_PROFILE, base: Path | None = None) -> Path:
-    """Return the path of the collection for *profile* (``~/.local/share/Anki2/<profile>/``)."""
-    return (base or DEFAULT_ANKI_BASE) / profile / "collection.anki2"
+class ProfileError(Exception):
+    """The Anki profile cannot be determined automatically."""
+
+
+def find_profiles(base: Path | None = None) -> list[str]:
+    """Return the sorted names of all profile directories that contain a collection."""
+    base = base if base is not None else DEFAULT_ANKI_BASE
+    if not base.is_dir():
+        return []
+    return sorted(p.name for p in base.iterdir() if (p / COLLECTION_FILE).is_file())
+
+
+def default_collection_path(profile: str | None = None, base: Path | None = None) -> Path:
+    """Return the collection path for *profile* (``~/.local/share/Anki2/<profile>/``).
+
+    Without *profile*, the profile is detected automatically. This also works for localised
+    default profile names such as ``Benutzer 1``. Raises :class:`ProfileError` if there is
+    no profile or more than one.
+    """
+    base = base if base is not None else DEFAULT_ANKI_BASE
+    if profile is None:
+        profiles = find_profiles(base)
+        if not profiles:
+            raise ProfileError(f"No Anki profile with a {COLLECTION_FILE} found in {base}.")
+        if len(profiles) > 1:
+            names = ", ".join(profiles)
+            raise ProfileError(
+                f"Multiple Anki profiles found ({names}); choose one with --profile."
+            )
+        profile = profiles[0]
+    return base / profile / COLLECTION_FILE
 
 
 def _unicase(a: str, b: str) -> int:

@@ -25,8 +25,9 @@ _scripts/run.sh hello
 ### Decks
 
 The collection is opened read-only. If Anki is running and the database is locked, ankivis
-reads from a temporary copy instead. By default it reads
-`~/.local/share/Anki2/<profile>/collection.anki2` (profile `User 1`).
+reads from a temporary copy instead. It reads `~/.local/share/Anki2/<profile>/collection.anki2`.
+If there is only one profile, it is detected automatically, including localised names such as
+`Benutzer 1`. Otherwise pass `--profile`.
 
 ```sh
 _scripts/run.sh decks                                   # numbered list of all decks

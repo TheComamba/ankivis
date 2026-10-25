@@ -34,6 +34,28 @@ def test_decks_uses_profile_path(collection_path, monkeypatch):
     assert "Spanish::Verbs" in result.output
 
 
+def test_decks_without_profile_autodetects(collection_path, monkeypatch):
+    # collection_path lives in <tmp>/collection.anki2; build a profile dir layout instead.
+    base = collection_path.parent / "Anki2"
+    (base / "Benutzer 1").mkdir(parents=True)
+    collection_path.rename(base / "Benutzer 1" / "collection.anki2")
+    (base / "addons21").mkdir()
+    monkeypatch.setattr("ankivis.db.DEFAULT_ANKI_BASE", base)
+    result = runner.invoke(app, ["decks"])
+    assert result.exit_code == 0, result.output
+    assert "3. Spanish::Verbs" in result.output
+
+
+def test_decks_ambiguous_profile_reports_error(tmp_path, monkeypatch):
+    for name in ("Alice", "Bob"):
+        (tmp_path / name).mkdir()
+        (tmp_path / name / "collection.anki2").touch()
+    monkeypatch.setattr("ankivis.db.DEFAULT_ANKI_BASE", tmp_path)
+    result = runner.invoke(app, ["decks"])
+    assert result.exit_code == 1
+    assert "--profile" in result.output
+
+
 def test_decks_missing_collection(tmp_path):
     result = runner.invoke(app, ["decks", "--collection", str(tmp_path / "missing.anki2")])
     assert result.exit_code != 0

@@ -5,7 +5,7 @@ from typing import Annotated
 
 import typer
 
-from ankivis.db import DEFAULT_PROFILE, default_collection_path, open_collection
+from ankivis.db import ProfileError, default_collection_path, open_collection
 from ankivis.decks import Deck, deck_ids, find_deck, format_deck_list, list_decks, pick_deck
 
 app = typer.Typer(
@@ -23,8 +23,13 @@ CollectionOption = Annotated[
     ),
 ]
 ProfileOption = Annotated[
-    str,
-    typer.Option("--profile", "-p", help="Anki profile name (~/.local/share/Anki2/<profile>)."),
+    str | None,
+    typer.Option(
+        "--profile",
+        "-p",
+        help="Anki profile name (~/.local/share/Anki2/<profile>). "
+        "Detected automatically if there is only one.",
+    ),
 ]
 
 
@@ -39,11 +44,11 @@ def hello() -> None:
     typer.echo("Hello, world")
 
 
-def _load_decks(collection: Path | None, profile: str) -> list[Deck]:
-    path = collection if collection is not None else default_collection_path(profile)
+def _load_decks(collection: Path | None, profile: str | None) -> list[Deck]:
     try:
+        path = collection if collection is not None else default_collection_path(profile)
         conn = open_collection(path)
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, ProfileError) as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(1) from exc
     try:
@@ -72,7 +77,7 @@ def select_deck(decks: list[Deck], deck: str | None) -> Deck:
 @app.command("decks")
 def decks_command(
     collection: CollectionOption = None,
-    profile: ProfileOption = DEFAULT_PROFILE,
+    profile: ProfileOption = None,
     pick: Annotated[
         bool, typer.Option("--pick", help="Interactively pick a deck from the list.")
     ] = False,
