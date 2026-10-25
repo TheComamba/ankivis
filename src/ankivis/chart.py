@@ -67,7 +67,7 @@ def build_figure(
             [count for _, count in segments],
             colors=[interval_color(ivl) for ivl, _ in segments],
             startangle=90,
-            counterclock=False,
+            counterclock=True,
             wedgeprops={"linewidth": 0.5, "antialiased": True},
         )
         # A thin edge in the wedge's own colour hides antialiasing seams between neighbours.
