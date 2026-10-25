@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Create the virtual environment (if needed) and install ankivis with dev dependencies.
+
+set -euo pipefail
+
 source "$(dirname "${BASH_SOURCE[0]}")/lib/shared.sh"
 
 create_venv

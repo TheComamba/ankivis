@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Upgrade all dependencies to the newest versions allowed by pyproject.toml.
+
+set -euo pipefail
+
 source "$(dirname "${BASH_SOURCE[0]}")/lib/shared.sh"
 
 create_venv

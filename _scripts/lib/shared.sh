@@ -9,8 +9,6 @@
 #   install_deps  install ankivis (editable) with dev dependencies; extra pip args are passed on
 #   ensure_venv   run the full setup if the virtual environment does not exist yet
 
-set -euo pipefail
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 VENV_DIR="$ROOT_DIR/.venv"
 VENV_PYTHON="$VENV_DIR/bin/python"
