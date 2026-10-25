@@ -10,7 +10,7 @@ from collections.abc import Callable, Iterable, Iterator, Sequence
 from datetime import date, timedelta, tzinfo
 from pathlib import Path
 
-from ankivis.chart import render_pie
+from ankivis.chart import DEFAULT_SIZE, render_pie
 from ankivis.history import (
     REVLOG_MANUAL,
     deck_filter,
@@ -95,8 +95,10 @@ def export_days(
     title: str | None = None,
     tz: tzinfo | None = None,
     render: Renderer | None = None,
+    size: int = DEFAULT_SIZE,
 ) -> Iterator[Path]:
-    """Render the image of each of *days* into *out_dir*, yielding each path once written.
+    """Render the *size* × *size* px image of each of *days* into *out_dir*, yielding each
+    path once written.
 
     Existing files are overwritten. If rendering fails or is interrupted, the incomplete
     image is removed so that a later run renders that day again.
@@ -107,7 +109,7 @@ def export_days(
     for day, intervals in daily_intervals(conn, deck_ids, days, tz):
         path = image_path(out_dir, day)
         try:
-            render(intervals, day, path, title=title)
+            render(intervals, day, path, title=title, size=size)
         except BaseException:
             path.unlink(missing_ok=True)
             raise
@@ -140,9 +142,10 @@ def export_missing(
     title: str | None = None,
     tz: tzinfo | None = None,
     render: Renderer | None = None,
+    size: int = DEFAULT_SIZE,
 ) -> list[Path]:
     """Render every missing day from the first review up to *last*; return the new paths."""
     days = days_to_export(conn, deck_ids, out_dir, last, tz)
     if not days:
         return []
-    return list(export_days(conn, deck_ids, out_dir, days, title, tz, render))
+    return list(export_days(conn, deck_ids, out_dir, days, title, tz, render, size))

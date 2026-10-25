@@ -7,7 +7,7 @@ from typing import Annotated
 
 import typer
 
-from ankivis.chart import render_pie
+from ankivis.chart import DEFAULT_SIZE, MIN_SIZE, render_pie
 from ankivis.db import ProfileError, default_collection_path, open_collection
 from ankivis.decks import Deck, deck_ids, find_deck, format_deck_list, list_decks, pick_deck
 from ankivis.export import days_to_export, export_days
@@ -60,6 +60,15 @@ DateOption = Annotated[
         help="Date (YYYY-MM-DD) whose end-of-day state is shown. Defaults to today.",
         formats=["%Y-%m-%d"],
         show_default=False,
+    ),
+]
+SizeOption = Annotated[
+    int,
+    typer.Option(
+        "--size",
+        "-s",
+        min=MIN_SIZE,
+        help="Width and height of the square image in pixels. Everything scales with it.",
     ),
 ]
 
@@ -187,12 +196,13 @@ def chart_command(
             show_default=False,
         ),
     ] = None,
+    size: SizeOption = DEFAULT_SIZE,
 ) -> None:
     """Render the deck's intervals on a date (default: today) as a pie chart PNG."""
     target = on.date() if on is not None else _today()
     selected, intervals = _deck_intervals(collection, profile, deck, subdecks, target)
     path = out if out is not None else Path(f"{target.isoformat()}.png")
-    render_pie(intervals, target, path, title=selected.name)
+    render_pie(intervals, target, path, title=selected.name, size=size)
     typer.echo(f"Wrote {path}")
 
 
@@ -220,10 +230,12 @@ def export_command(
             show_default=False,
         ),
     ] = None,
+    size: SizeOption = DEFAULT_SIZE,
 ) -> None:
     """Render one pie chart per day, from the first review up to --until (default: yesterday).
 
     Days whose image already exists are skipped, so the export can be resumed or updated.
+    Existing images keep their size; delete them to re-render them with a different --size.
     """
     today = _today()
     last = until.date() if until is not None else today - timedelta(days=1)
@@ -242,7 +254,7 @@ def export_command(
         if not days:
             typer.echo(f"All images in {out} are up to date.")
             return
-        paths = export_days(conn, ids, out, days, title=selected.name)
+        paths = export_days(conn, ids, out, days, title=selected.name, size=size)
         with typer.progressbar(paths, length=len(days), label="Rendering") as bar:
             for _ in bar:
                 pass
