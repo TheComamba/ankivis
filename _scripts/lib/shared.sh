@@ -11,7 +11,7 @@
 #   MIN_PACKAGE_AGE                 minimum upload age (ISO 8601 duration) for update.sh, default P1D
 #   pip_supports_upload_cutoff      succeed if the venv's pip understands --uploaded-prior-to
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT_DIR="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
 VENV_DIR="$ROOT_DIR/.venv"
 VENV_PYTHON="$VENV_DIR/bin/python"
 PYTHON="${PYTHON:-python3}"
