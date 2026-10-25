@@ -2,7 +2,7 @@
 
 Short intervals are red, long ones blue; in between the colour runs through the rainbow
 (red → orange → yellow → green → blue, HSV hue 0° → 240°) on a logarithmic scale, so that
-the difference between 1 and 10 days is as visible as the one between 70 and 700 days.
+the difference between 1 and 10 days is as visible as the one between 73 and 730 days.
 Unlearned cards (``None``) are fully transparent.
 """
 
@@ -12,7 +12,7 @@ import math
 RGBA = tuple[float, float, float, float]
 
 MIN_INTERVAL = 1  # days; at or below → red
-MAX_INTERVAL = 700  # days; at or above → blue
+MAX_INTERVAL = 730  # days (2 years); at or above → blue
 MAX_HUE = 240.0  # degrees; blue
 
 TRANSPARENT: RGBA = (0.0, 0.0, 0.0, 0.0)

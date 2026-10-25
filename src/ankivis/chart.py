@@ -30,7 +30,7 @@ LEGEND_ENTRIES: tuple[tuple[float | None, str], ...] = (
     (30, "1 month"),
     (90, "3 months"),
     (365, "1 year"),
-    (MAX_INTERVAL, f"≥ {MAX_INTERVAL} days"),
+    (MAX_INTERVAL, "≥ 2 years"),
     (None, "unlearned"),
 )
 

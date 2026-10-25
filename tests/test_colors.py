@@ -25,18 +25,18 @@ def test_short_intervals_are_red(ivl):
     assert interval_color(ivl) == pytest.approx(RED)
 
 
-@pytest.mark.parametrize("ivl", [MAX_INTERVAL, 700.0, 701.0, 5000.0])
+@pytest.mark.parametrize("ivl", [MAX_INTERVAL, 730.0, 731.0, 5000.0])
 def test_long_intervals_are_blue(ivl):
     assert interval_color(ivl) == pytest.approx(BLUE)
 
 
 def test_boundaries():
     assert MIN_INTERVAL == 1
-    assert MAX_INTERVAL == 700
+    assert MAX_INTERVAL == 730  # 2 years
 
 
 def test_learned_colours_are_opaque_and_saturated():
-    for ivl in [1, 2, 5, 10, 30, 100, 300, 700]:
+    for ivl in [1, 2, 5, 10, 30, 100, 300, 730]:
         r, g, b, a = interval_color(ivl)
         assert a == 1.0
         _, s, v = colorsys.rgb_to_hsv(r, g, b)
@@ -45,7 +45,7 @@ def test_learned_colours_are_opaque_and_saturated():
 
 
 def test_hue_is_monotonic():
-    samples = [1 + i * 0.7 for i in range(1000)]
+    samples = [1 + i * 0.73 for i in range(1000)]
     hues = [interval_hue(ivl) for ivl in samples]
     assert all(a <= b for a, b in zip(hues, hues[1:], strict=False))
     assert hues[0] == 0.0
@@ -58,7 +58,7 @@ def test_hue_of_colour_matches_interval_hue():
 
 
 def test_hue_is_log_scaled():
-    # The geometric midpoint of 1 and 700 is at half the hue range (green-ish, 120°).
+    # The geometric midpoint of 1 and 730 is at half the hue range (green-ish, 120°).
     assert interval_hue(math.sqrt(MAX_INTERVAL)) == pytest.approx(120.0)
     # Rainbow order: orange before yellow before green before blue.
     assert 0 < interval_hue(2) < 60 < interval_hue(100) < 240

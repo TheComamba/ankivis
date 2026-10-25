@@ -30,8 +30,8 @@ def wedge_span(wedge: Wedge) -> float:
 
 
 def test_segments_are_sorted_and_grouped():
-    intervals = {1: 30.0, 2: None, 3: 0.01, 4: 30.0, 5: 700.0, 6: None, 7: 2.0}
-    assert pie_segments(intervals) == [(0.01, 1), (2.0, 1), (30.0, 2), (700.0, 1), (None, 2)]
+    intervals = {1: 30.0, 2: None, 3: 0.01, 4: 30.0, 5: 730.0, 6: None, 7: 2.0}
+    assert pie_segments(intervals) == [(0.01, 1), (2.0, 1), (30.0, 2), (730.0, 1), (None, 2)]
 
 
 def test_segments_of_empty_deck():
