@@ -40,6 +40,22 @@ def test_shared_lib_defines_paths():
     assert Path(venv) == SCRIPTS_DIR.parent / ".venv"
 
 
+def test_update_script_restricts_package_age():
+    content = (SCRIPTS_DIR / "update.sh").read_text()
+    assert 'export PIP_UPLOADED_PRIOR_TO="$MIN_PACKAGE_AGE"' in content
+    assert "pip_supports_upload_cutoff" in content
+
+
+def test_shared_lib_default_min_package_age_is_one_day():
+    result = subprocess.run(
+        ["bash", "-c", f'unset MIN_PACKAGE_AGE; source "{SHARED_LIB}" && echo "$MIN_PACKAGE_AGE"'],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "P1D"
+
+
 def test_run_script_runs_program_from_any_directory(tmp_path):
     result = subprocess.run(
         [str(SCRIPTS_DIR / "run.sh"), "hello"],
