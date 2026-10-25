@@ -19,5 +19,30 @@ Shared logic lives in `_scripts/lib/shared.sh`.
 
 ```sh
 _scripts/setup.sh
-_scripts/run.sh hello
+_scripts/run.sh --help
+```
+
+### Decks
+
+The collection is opened read-only. If Anki is running and the database is locked, ankivis
+reads from a temporary copy instead. It reads `<Anki data folder>/<profile>/collection.anki2`,
+where the Anki data folder is:
+
+| Platform | Anki data folder |
+|---|---|
+| Linux | `$XDG_DATA_HOME/Anki2` (default `~/.local/share/Anki2`) |
+| macOS | `~/Library/Application Support/Anki2` |
+| Windows | `%APPDATA%\Anki2` |
+
+Like Anki itself, the `ANKI_BASE` environment variable overrides this folder on all platforms.
+If there is only one profile, it is detected automatically, including localised names such as
+`Benutzer 1`. Otherwise pass `--profile`.
+
+```sh
+_scripts/run.sh decks                                   # numbered list of all decks
+_scripts/run.sh decks --profile "Alice"                 # another Anki profile
+_scripts/run.sh decks --collection path/to/collection.anki2
+_scripts/run.sh decks --pick                            # pick interactively (number, name or id)
+_scripts/run.sh decks --deck "Spanish::Verbs"           # select by name or id
+_scripts/run.sh decks --deck Spanish --no-subdecks      # exclude subdecks
 ```

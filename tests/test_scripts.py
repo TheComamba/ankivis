@@ -58,10 +58,10 @@ def test_shared_lib_default_min_package_age_is_one_day():
 
 def test_run_script_runs_program_from_any_directory(tmp_path):
     result = subprocess.run(
-        [str(SCRIPTS_DIR / "run.sh"), "hello"],
+        [str(SCRIPTS_DIR / "run.sh"), "--help"],
         capture_output=True,
         text=True,
         cwd=tmp_path,
     )
     assert result.returncode == 0, result.stderr
-    assert "Hello, world" in result.stdout
+    assert "decks" in result.stdout
