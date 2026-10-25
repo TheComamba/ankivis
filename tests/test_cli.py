@@ -3,6 +3,8 @@ import subprocess
 import sys
 from datetime import date, datetime
 
+import imageio.v2 as imageio
+import numpy as np
 from typer.testing import CliRunner
 
 from ankivis.cli import app
@@ -310,6 +312,83 @@ def test_export_without_reviews(collection_path, tmp_path):
 
 def test_export_requires_out(collection_path):
     result = runner.invoke(app, ["export", "-c", str(collection_path), "-d", "Spanish"])
+    assert result.exit_code != 0
+
+
+def _write_frames(directory, names):
+    directory.mkdir(parents=True, exist_ok=True)
+    for name in names:
+        imageio.imwrite(directory / name, np.full((32, 32, 4), 255, dtype=np.uint8))
+
+
+def test_video_writes_mp4(tmp_path):
+    frames = tmp_path / "frames"
+    _write_frames(frames, ["2024-01-01.png", "2024-01-02.png", "2024-01-03.png"])
+    out = tmp_path / "progress.mp4"
+    result = runner.invoke(app, ["video", "--in", str(frames), "--out", str(out), "--fps", "5"])
+    assert result.exit_code == 0, result.output
+    assert out.exists()
+    assert "Wrote 3 frames" in result.output
+    assert str(out) in result.output
+
+
+def test_video_default_output_in_input_dir(tmp_path, monkeypatch):
+    frames = tmp_path / "frames"
+    _write_frames(frames, ["2024-01-01.png"])
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["video", "--in", str(frames)])
+    assert result.exit_code == 0, result.output
+    assert (frames / "progress.mp4").exists()
+    assert not (tmp_path / "progress.mp4").exists()
+    assert "Wrote 1 frame " in result.output
+    assert str(frames / "progress.mp4") in result.output
+
+
+def test_video_date_range(tmp_path):
+    frames = tmp_path / "frames"
+    _write_frames(frames, [f"2024-01-0{d}.png" for d in (1, 2, 3, 4)])
+    out = tmp_path / "v.mp4"
+    args = ["video", "--in", str(frames), "--out", str(out)]
+    result = runner.invoke(app, [*args, "--from", "2024-01-02", "--until", "2024-01-03"])
+    assert result.exit_code == 0, result.output
+    assert "Wrote 2 frames" in result.output
+
+
+def test_video_custom_background(tmp_path):
+    frames = tmp_path / "frames"
+    _write_frames(frames, ["2024-01-01.png"])
+    out = tmp_path / "v.mp4"
+    args = ["video", "--in", str(frames), "--out", str(out), "--background", "#000000"]
+    result = runner.invoke(app, args)
+    assert result.exit_code == 0, result.output
+
+
+def test_video_invalid_background(tmp_path):
+    frames = tmp_path / "frames"
+    _write_frames(frames, ["2024-01-01.png"])
+    args = ["video", "--in", str(frames), "--out", str(tmp_path / "v.mp4")]
+    result = runner.invoke(app, [*args, "--background", "no-such-colour"])
+    assert result.exit_code != 0
+    assert "no-such-colour" in result.output
+
+
+def test_video_empty_dir_reports_error(tmp_path):
+    out = tmp_path / "v.mp4"
+    result = runner.invoke(app, ["video", "--in", str(tmp_path), "--out", str(out)])
+    assert result.exit_code == 1
+    assert "YYYY-MM-DD.png" in result.output
+    assert not out.exists()
+
+
+def test_video_requires_in(tmp_path):
+    result = runner.invoke(app, ["video", "--out", str(tmp_path / "v.mp4")])
+    assert result.exit_code != 0
+
+
+def test_video_rejects_zero_fps(tmp_path):
+    frames = tmp_path / "frames"
+    _write_frames(frames, ["2024-01-01.png"])
+    result = runner.invoke(app, ["video", "--in", str(frames), "--fps", "0"])
     assert result.exit_code != 0
 
 

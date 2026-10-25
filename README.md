@@ -74,6 +74,21 @@ _scripts/run.sh export --deck Spanish --out frames/                     # up to 
 _scripts/run.sh export --deck Spanish --out frames/ --until 2024-03-10
 ```
 
+### Video
+
+`video` combines the `YYYY-MM-DD.png` images of a directory into an H.264 MP4 video, one
+frame per day in chronological order (10 frames per second by default). Other files in the
+directory are ignored. MP4 has no transparency, so transparent areas are filled with the
+`--background` colour (default white). `--from` and `--until` restrict the date range. The
+video is written to `progress.mp4` inside the `--in` directory unless `--out` is given. ffmpeg
+is bundled through `imageio[ffmpeg]`; no system installation is needed.
+
+```sh
+_scripts/run.sh video --in frames/                                      # → frames/progress.mp4
+_scripts/run.sh video --in frames/ --out spanish.mp4 --fps 30 --background "#202020"
+_scripts/run.sh video --in frames/ --from 2024-01-01 --until 2024-12-31
+```
+
 ### Disclaimer
 
 Almost all of the code in this repository is generated. The human owner merely provided guidance, steering, and casual PR reviews. This seems an appropriate working model for an inconsequential toy project.
