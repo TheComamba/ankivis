@@ -4,11 +4,15 @@ from pathlib import Path
 import pytest
 
 from ankivis.db import (
+    DEFAULT_ANKI_BASE,
     ProfileError,
+    default_anki_base,
     default_collection_path,
     find_profiles,
     open_collection,
 )
+
+HOME = Path("/home/user")
 
 
 def _make_profile(base: Path, name: str, with_collection: bool = True) -> None:
@@ -19,7 +23,37 @@ def _make_profile(base: Path, name: str, with_collection: bool = True) -> None:
 
 def test_default_collection_path_uses_profile():
     path = default_collection_path("Alice")
-    assert path == Path.home() / ".local" / "share" / "Anki2" / "Alice" / "collection.anki2"
+    assert path == DEFAULT_ANKI_BASE / "Alice" / "collection.anki2"
+
+
+def test_default_anki_base_linux():
+    assert default_anki_base("linux", {}, HOME) == HOME / ".local" / "share" / "Anki2"
+
+
+def test_default_anki_base_linux_xdg_data_home():
+    environ = {"XDG_DATA_HOME": "/data"}
+    assert default_anki_base("linux", environ, HOME) == Path("/data") / "Anki2"
+
+
+def test_default_anki_base_macos():
+    expected = HOME / "Library" / "Application Support" / "Anki2"
+    assert default_anki_base("darwin", {}, HOME) == expected
+
+
+def test_default_anki_base_windows_appdata():
+    environ = {"APPDATA": "/appdata/Roaming"}
+    assert default_anki_base("win32", environ, HOME) == Path("/appdata/Roaming") / "Anki2"
+
+
+def test_default_anki_base_windows_without_appdata():
+    expected = HOME / "AppData" / "Roaming" / "Anki2"
+    assert default_anki_base("win32", {}, HOME) == expected
+
+
+@pytest.mark.parametrize("platform", ["linux", "darwin", "win32"])
+def test_default_anki_base_env_override(platform):
+    environ = {"ANKI_BASE": "/custom/anki", "APPDATA": "/x", "XDG_DATA_HOME": "/y"}
+    assert default_anki_base(platform, environ, HOME) == Path("/custom/anki")
 
 
 def test_default_collection_path_custom_base(tmp_path):

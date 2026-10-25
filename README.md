@@ -25,7 +25,16 @@ _scripts/run.sh --help
 ### Decks
 
 The collection is opened read-only. If Anki is running and the database is locked, ankivis
-reads from a temporary copy instead. It reads `~/.local/share/Anki2/<profile>/collection.anki2`.
+reads from a temporary copy instead. It reads `<Anki data folder>/<profile>/collection.anki2`,
+where the Anki data folder is:
+
+| Platform | Anki data folder |
+|---|---|
+| Linux | `$XDG_DATA_HOME/Anki2` (default `~/.local/share/Anki2`) |
+| macOS | `~/Library/Application Support/Anki2` |
+| Windows | `%APPDATA%\Anki2` |
+
+Like Anki itself, the `ANKI_BASE` environment variable overrides this folder on all platforms.
 If there is only one profile, it is detected automatically, including localised names such as
 `Benutzer 1`. Otherwise pass `--profile`.
 

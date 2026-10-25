@@ -27,8 +27,9 @@ ProfileOption = Annotated[
     typer.Option(
         "--profile",
         "-p",
-        help="Anki profile name (~/.local/share/Anki2/<profile>). "
-        "Detected automatically if there is only one.",
+        help="Anki profile name (a folder inside Anki's data folder, e.g. "
+        "~/.local/share/Anki2 on Linux, ~/Library/Application Support/Anki2 on macOS, "
+        "%APPDATA%\\Anki2 on Windows). Detected automatically if there is only one.",
     ),
 ]
 

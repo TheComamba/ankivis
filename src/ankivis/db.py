@@ -1,12 +1,46 @@
 """Read-only access to an Anki collection (``collection.anki2``)."""
 
+import os
 import shutil
 import sqlite3
+import sys
 import tempfile
+from collections.abc import Mapping
 from pathlib import Path
 
-DEFAULT_ANKI_BASE = Path.home() / ".local" / "share" / "Anki2"
 COLLECTION_FILE = "collection.anki2"
+
+
+def default_anki_base(
+    platform: str | None = None,
+    environ: Mapping[str, str] | None = None,
+    home: Path | None = None,
+) -> Path:
+    """Return Anki's data folder (the folder containing the profile directories).
+
+    Mirrors Anki's own lookup:
+
+    * ``ANKI_BASE`` environment variable, if set (all platforms)
+    * Windows: ``%APPDATA%\\Anki2``
+    * macOS: ``~/Library/Application Support/Anki2``
+    * Linux/other: ``$XDG_DATA_HOME/Anki2``, falling back to ``~/.local/share/Anki2``
+    """
+    platform = platform if platform is not None else sys.platform
+    environ = environ if environ is not None else os.environ
+    home = home if home is not None else Path.home()
+
+    if anki_base := environ.get("ANKI_BASE"):
+        return Path(anki_base).expanduser()
+    if platform.startswith("win"):
+        appdata = environ.get("APPDATA")
+        return (Path(appdata) if appdata else home / "AppData" / "Roaming") / "Anki2"
+    if platform == "darwin":
+        return home / "Library" / "Application Support" / "Anki2"
+    xdg = environ.get("XDG_DATA_HOME")
+    return (Path(xdg) if xdg else home / ".local" / "share") / "Anki2"
+
+
+DEFAULT_ANKI_BASE = default_anki_base()
 
 
 class ProfileError(Exception):
@@ -22,7 +56,9 @@ def find_profiles(base: Path | None = None) -> list[str]:
 
 
 def default_collection_path(profile: str | None = None, base: Path | None = None) -> Path:
-    """Return the collection path for *profile* (``~/.local/share/Anki2/<profile>/``).
+    """Return the collection path for *profile* (``<Anki base>/<profile>/collection.anki2``).
+
+    The Anki base folder is platform dependent, see :func:`default_anki_base`.
 
     Without *profile*, the profile is detected automatically. This also works for localised
     default profile names such as ``Benutzer 1``. Raises :class:`ProfileError` if there is
