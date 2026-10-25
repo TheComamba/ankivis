@@ -1,5 +1,7 @@
+import sqlite3
 import subprocess
 import sys
+from datetime import date, datetime
 
 from typer.testing import CliRunner
 
@@ -86,6 +88,106 @@ def test_decks_with_unknown_deck(collection_path):
     result = runner.invoke(app, ["decks", "--collection", str(collection_path), "--deck", "French"])
     assert result.exit_code != 0
     assert "French" in result.output
+
+
+def _ms(year: int, month: int, day: int) -> int:
+    """Epoch ms at local noon (robust against the system timezone)."""
+    return int(datetime(year, month, day, 12).timestamp() * 1000)
+
+
+def _fill_reviews(path, n_cards: int = 12) -> list[int]:
+    conn = sqlite3.connect(path)
+    cids = []
+    for i in range(n_cards):
+        cid = _ms(2024, 1, 1) + i
+        conn.execute(
+            "INSERT INTO cards VALUES (?, ?, 1700000000002, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,"
+            " 0, 0, 0, '')",
+            (cid, i + 1),
+        )
+        # Interval on 2024-03-10 is i + 1 days; a later review must be ignored.
+        conn.execute(
+            "INSERT INTO revlog VALUES (?, ?, 0, 3, ?, 0, 2500, 1000, 1)",
+            (_ms(2024, 2, 1) + i, cid, i + 1),
+        )
+        conn.execute(
+            "INSERT INTO revlog VALUES (?, ?, 0, 3, 999, 0, 2500, 1000, 1)",
+            (_ms(2024, 4, 1) + i, cid),
+        )
+        cids.append(cid)
+    conn.commit()
+    conn.close()
+    return cids
+
+
+def test_intervals_prints_top_ten(collection_path):
+    cids = _fill_reviews(collection_path)
+    result = runner.invoke(
+        app,
+        ["intervals", "-c", str(collection_path), "-d", "Spanish", "--date", "2024-03-10"],
+    )
+    assert result.exit_code == 0, result.output
+    lines = [line.strip() for line in result.output.splitlines() if line.strip()]
+    assert lines[0] == "Largest intervals in Spanish on 2024-03-10:"
+    assert lines[1] == f"1. card {cids[11]}: 12 d"
+    assert lines[10] == f"10. card {cids[2]}: 3 d"
+    assert len(lines) == 11
+    assert "999" not in result.output
+
+
+def test_intervals_top_option(collection_path):
+    _fill_reviews(collection_path)
+    result = runner.invoke(
+        app,
+        [
+            "intervals",
+            "-c",
+            str(collection_path),
+            "-d",
+            "Spanish",
+            "--date",
+            "2024-03-10",
+            "--top",
+            "2",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert len([line for line in result.output.splitlines() if "card" in line]) == 2
+
+
+def test_intervals_without_learned_cards(collection_path):
+    result = runner.invoke(
+        app, ["intervals", "-c", str(collection_path), "-d", "Spanish", "--date", "2024-03-10"]
+    )
+    assert result.exit_code == 0, result.output
+    assert "No learned cards in Spanish on 2024-03-10." in result.output
+
+
+def test_intervals_defaults_to_today(collection_path, monkeypatch):
+    cids = _fill_reviews(collection_path)
+    monkeypatch.setattr("ankivis.cli._today", lambda: date(2024, 3, 10))
+    result = runner.invoke(app, ["intervals", "-c", str(collection_path), "-d", "Spanish"])
+    assert result.exit_code == 0, result.output
+    assert "Largest intervals in Spanish on 2024-03-10:" in result.output
+    assert f"1. card {cids[11]}: 12 d" in result.output
+
+
+def test_intervals_today_includes_all_reviews(collection_path):
+    # End of today lies in the future; every existing review must still be counted.
+    cids = _fill_reviews(collection_path)
+    result = runner.invoke(app, ["intervals", "-c", str(collection_path), "-d", "Spanish"])
+    assert result.exit_code == 0, result.output
+    assert f"on {date.today().isoformat()}:" in result.output
+    # All cards now have the (tied) interval 999; ties are ordered by card id.
+    assert f" 1. card {cids[0]}: 999 d" in result.output
+    assert f"10. card {cids[9]}: 999 d" in result.output
+
+
+def test_intervals_rejects_invalid_date(collection_path):
+    result = runner.invoke(
+        app, ["intervals", "-c", str(collection_path), "-d", "Spanish", "--date", "10.03.2024"]
+    )
+    assert result.exit_code != 0
 
 
 def test_module_is_executable():
