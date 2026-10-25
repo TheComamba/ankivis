@@ -12,6 +12,28 @@ from ankivis.cli import app
 runner = CliRunner()
 
 
+def test_version_option_prints_version():
+    from ankivis import __version__
+
+    result = runner.invoke(app, ["--version"])
+    assert result.exit_code == 0, result.output
+    assert result.output.strip() == f"ankivis {__version__}"
+
+
+def test_version_matches_installed_metadata():
+    from importlib.metadata import version
+
+    from ankivis import __version__
+
+    assert version("ankivis") == __version__
+
+
+def test_help_lists_intervals_command():
+    result = runner.invoke(app, ["--help"])
+    assert result.exit_code == 0
+    assert "intervals" in result.output
+
+
 def test_help_lists_decks_command():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0

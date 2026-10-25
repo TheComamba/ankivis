@@ -1,8 +1,12 @@
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+
+# The helper scripts are bash scripts for Linux and macOS; on Windows, use pip directly.
+pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="bash scripts are Unix-only")
 
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "_scripts"
 SCRIPTS = ["setup.sh", "run.sh", "lint.sh", "test.sh", "update.sh", "generate_demo.sh"]
@@ -38,6 +42,14 @@ def test_shared_lib_defines_paths():
     root, venv = result.stdout.splitlines()
     assert Path(root) == SCRIPTS_DIR.parent
     assert Path(venv) == SCRIPTS_DIR.parent / ".venv"
+
+
+def test_generate_demo_documents_all_environment_overrides():
+    content = (SCRIPTS_DIR / "generate_demo.sh").read_text()
+    header = content.split("set -euo pipefail")[0]
+    for var in ("DEMO_DECK", "DEMO_UNTIL", "DEMO_FPS", "DEMO_SIZE"):
+        assert var in content
+        assert f"#   {var}" in header, f"{var} is not documented in the header"
 
 
 def test_update_script_restricts_package_age():
