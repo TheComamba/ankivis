@@ -38,12 +38,6 @@ def main() -> None:
     """Visualise learning progress for an Anki deck."""
 
 
-@app.command()
-def hello() -> None:
-    """Print a greeting (sanity check)."""
-    typer.echo("Hello, world")
-
-
 def _load_decks(collection: Path | None, profile: str | None) -> list[Deck]:
     try:
         path = collection if collection is not None else default_collection_path(profile)

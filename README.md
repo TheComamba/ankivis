@@ -19,7 +19,7 @@ Shared logic lives in `_scripts/lib/shared.sh`.
 
 ```sh
 _scripts/setup.sh
-_scripts/run.sh hello
+_scripts/run.sh --help
 ```
 
 ### Decks
