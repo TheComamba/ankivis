@@ -3,8 +3,9 @@
 Cards are sorted by interval so that the colours flow as a smooth gradient around the pie.
 Cards with the same interval are merged into one wedge. Unlearned cards form a transparent
 wedge at the end. A legend below the pie shows the colours of representative intervals; its
-entries do not depend on the data. The image has a transparent background and a fixed size,
-so that the frames of a video all match.
+entries do not depend on the data. The image is square with a transparent background and a
+fixed size (configurable, :data:`DEFAULT_SIZE` pixels by default), so that the frames of a
+video all match. The whole layout, including text, scales with the size.
 """
 
 from collections import Counter
@@ -18,8 +19,10 @@ from matplotlib.patches import Circle, Patch
 
 from ankivis.colors import MAX_INTERVAL, MIN_INTERVAL, interval_color
 
-FIGSIZE = (8.0, 8.0)  # inches
+FIGSIZE = (8.0, 8.0)  # inches; the layout (font sizes, line widths) is designed for this
 DPI = 100
+DEFAULT_SIZE = round(FIGSIZE[0] * DPI)  # pixels (width = height)
+MIN_SIZE = 100
 TEXT_COLOR = "#333333"
 OUTLINE_COLOR = "#999999"
 
@@ -79,11 +82,25 @@ def _add_legend(fig: Figure) -> None:
     )
 
 
+def size_dpi(size: int) -> float:
+    """DPI that renders the :data:`FIGSIZE` figure as a *size* × *size* pixel image.
+
+    Scaling the DPI instead of the figure keeps all proportions, including text. The figure
+    is 8 inches wide, so ``size / 8`` is exact in floating point and no pixel is lost.
+    """
+    if size < MIN_SIZE:
+        raise ValueError(f"Image size must be at least {MIN_SIZE} px, got {size}")
+    return size / FIGSIZE[0]
+
+
 def build_figure(
-    intervals: Mapping[int, float | None], day: date, title: str | None = None
+    intervals: Mapping[int, float | None],
+    day: date,
+    title: str | None = None,
+    size: int = DEFAULT_SIZE,
 ) -> Figure:
-    """Build (without saving) the pie chart figure for *intervals* on *day*."""
-    fig = Figure(figsize=FIGSIZE, dpi=DPI)
+    """Build (without saving) the *size* × *size* px pie chart figure for *intervals* on *day*."""
+    fig = Figure(figsize=FIGSIZE, dpi=size_dpi(size))
     FigureCanvasAgg(fig)
     fig.patch.set_alpha(0.0)
     fig.suptitle(_title(intervals, day, title), color=TEXT_COLOR, fontsize=16)
@@ -122,10 +139,15 @@ def render_pie(
     day: date,
     path: Path | str,
     title: str | None = None,
+    size: int = DEFAULT_SIZE,
 ) -> Path:
-    """Render the pie chart for *intervals* on *day* to the PNG file *path* and return it."""
+    """Render the pie chart for *intervals* on *day* to the PNG file *path* and return it.
+
+    The image is *size* × *size* pixels.
+    """
     path = Path(path)
+    dpi = size_dpi(size)
     path.parent.mkdir(parents=True, exist_ok=True)
-    fig = build_figure(intervals, day, title)
-    fig.savefig(path, dpi=DPI, transparent=True, format="png")
+    fig = build_figure(intervals, day, title, size)
+    fig.savefig(path, dpi=dpi, transparent=True, format="png")
     return path

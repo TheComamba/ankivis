@@ -6,8 +6,10 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import matplotlib.image
 import pytest
 
+from ankivis.chart import DEFAULT_SIZE
 from ankivis.export import daily_intervals, export_days, export_missing, missing_days
 from ankivis.history import intervals_at
 
@@ -58,11 +60,13 @@ class FakeRender:
 
     def __init__(self) -> None:
         self.calls: list[tuple[date, Path, dict, str | None]] = []
+        self.sizes: list[int] = []
 
-    def __call__(self, intervals, day, path, title=None):
+    def __call__(self, intervals, day, path, title=None, size=DEFAULT_SIZE):
         path = Path(path)
         path.write_bytes(b"png")
         self.calls.append((day, path, dict(intervals), title))
+        self.sizes.append(size)
         return path
 
     @property
@@ -241,7 +245,7 @@ def test_export_days_yields_each_path_lazily(conn, out_dir):
 def test_export_failed_render_leaves_no_file(conn, out_dir):
     _history(conn)
 
-    def broken(intervals, day, path, title=None):
+    def broken(intervals, day, path, title=None, size=DEFAULT_SIZE):
         Path(path).write_bytes(b"partial")
         raise RuntimeError("boom")
 
@@ -256,3 +260,24 @@ def test_export_with_real_renderer(conn, out_dir):
     assert [p.name for p in written] == ["2024-03-01.png", "2024-03-02.png"]
     for path in written:
         assert path.read_bytes().startswith(b"\x89PNG")
+        assert matplotlib.image.imread(path).shape == (DEFAULT_SIZE, DEFAULT_SIZE, 4)
+
+
+def test_export_passes_size_to_renderer(conn, out_dir):
+    _history(conn)
+    render = FakeRender()
+    export_missing(conn, [DECK], out_dir, date(2024, 3, 2), tz=BERLIN, render=render, size=321)
+    assert render.sizes == [321, 321]
+
+
+def test_export_uses_default_size(conn, out_dir):
+    _history(conn)
+    render = FakeRender()
+    export_missing(conn, [DECK], out_dir, date(2024, 3, 2), tz=BERLIN, render=render)
+    assert render.sizes == [DEFAULT_SIZE, DEFAULT_SIZE]
+
+
+def test_export_with_real_renderer_and_custom_size(conn, out_dir):
+    _history(conn)
+    written = export_missing(conn, [DECK], out_dir, date(2024, 3, 1), tz=BERLIN, size=240)
+    assert matplotlib.image.imread(written[0]).shape == (240, 240, 4)

@@ -1,5 +1,6 @@
 """Tests for pie chart rendering (``ankivis.chart``)."""
 
+import math
 from datetime import date
 
 import matplotlib.image
@@ -7,9 +8,11 @@ import pytest
 from matplotlib.patches import Wedge
 
 from ankivis.chart import (
+    DEFAULT_SIZE,
     DPI,
     FIGSIZE,
     LEGEND_ENTRIES,
+    MIN_SIZE,
     build_figure,
     pie_segments,
     render_pie,
@@ -116,3 +119,28 @@ def test_legend_maps_intervals_to_colours(intervals):
 def test_render_creates_parent_directories(tmp_path):
     out = render_pie({1: 1.0}, DAY, tmp_path / "nested" / "dir" / "day.png")
     assert out.exists()
+
+
+def test_default_size_is_800_px():
+    assert DEFAULT_SIZE == WIDTH == HEIGHT == 800
+
+
+@pytest.mark.parametrize("size", [MIN_SIZE, 333, 480, 1080, 1920])
+def test_render_with_custom_size(tmp_path, size):
+    out = render_pie({1: 3.0, 2: 100.0, 3: None}, DAY, tmp_path / "day.png", size=size)
+    image = matplotlib.image.imread(out)
+    assert image.shape == (size, size, 4)
+    assert image[0, 0, 3] == 0.0
+    # Inside the first wedge (90°–210°): at 150°, half the pie radius from the centre. The
+    # centre pixel itself is unsuitable: all wedges meet there and antialiasing blends them.
+    radius = 0.76 * size / 2.1  # axes height / y-range of the axes
+    row = round(size / 2 - 0.5 * radius * math.sin(math.radians(150)))
+    col = round(size / 2 + 0.5 * radius * math.cos(math.radians(150)))
+    assert image[row, col, 3] == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize("size", [0, -5, MIN_SIZE - 1])
+def test_render_rejects_too_small_size(tmp_path, size):
+    with pytest.raises(ValueError, match="at least"):
+        render_pie({1: 1.0}, DAY, tmp_path / "day.png", size=size)
+    assert not (tmp_path / "day.png").exists()
