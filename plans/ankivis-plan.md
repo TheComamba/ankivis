@@ -62,7 +62,7 @@ tests/test_*.py
 ## PR 4 – Pie chart rendering
 - `colors.py`: `interval_color(ivl) -> RGBA`
   - `None` → fully transparent
-  - `≤ 1` → red; `≥ 700` → blue
+  - `≤ 1` → red; `≥ 730` (2 years) → blue
   - between → rainbow red→orange→yellow→green→blue (HSV hue 0°→240°), interpolated on a **log scale** (default, see open questions)
 - `chart.py`: `render_pie(intervals, date, path)` sorts cards by interval so the colours flow as a smooth gradient; one wedge per card or per interval bucket. Adds a title with the date and counts, uses a transparent background, fixed size/DPI so video frames match.
 - Tests: colour boundaries and monotonic hue; PNG is created with the expected dimensions; an empty/all-unlearned deck does not crash; wedge colours match input (inspect matplotlib artists).
@@ -81,7 +81,7 @@ tests/test_*.py
 ---
 
 ## Decisions
-1. Rainbow interpolation: **log scale** between 1 and 700 days (confirmed).
+1. Rainbow interpolation: **log scale** between 1 and 730 days / 2 years (confirmed).
 2. Cards not yet created on a date (card `id` > end of day): **excluded**, so the pie grows over time (confirmed).
 3. Cards that exist but have not been learned yet (no revlog up to that date, or reset): **included as transparent wedges** (confirmed).
 4. Suspended/buried cards: included, coloured by their interval (default).

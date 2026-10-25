@@ -47,6 +47,20 @@ _scripts/run.sh decks --deck "Spanish::Verbs"           # select by name or id
 _scripts/run.sh decks --deck Spanish --no-subdecks      # exclude subdecks
 ```
 
+### Pie chart
+
+`chart` renders the state of a deck at the end of a day as a pie chart PNG (800×800 px,
+transparent background). Each card is a slice; cards are sorted by interval, so the colours
+form a gradient: red (≤ 1 day) → orange → yellow → green → blue (≥ 2 years), on a log scale.
+Cards that exist but have not been learned yet are transparent. A legend below the pie shows
+the colours of representative intervals (1 day, 1 week, 1 month, 3 months, 1 year, 2 years,
+unlearned).
+
+```sh
+_scripts/run.sh chart --deck Spanish                            # today → ./YYYY-MM-DD.png
+_scripts/run.sh chart --deck Spanish --date 2024-03-10 --out spanish.png
+```
+
 ### Disclaimer
 
 Almost all of the code in this repository is generated. The human owner merely provided guidance, steering, and casual PR reviews. This seems an appropriate working model for an inconsequential toy project.

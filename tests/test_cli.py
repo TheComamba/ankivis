@@ -190,6 +190,38 @@ def test_intervals_rejects_invalid_date(collection_path):
     assert result.exit_code != 0
 
 
+def test_chart_writes_png(collection_path, tmp_path):
+    _fill_reviews(collection_path)
+    out = tmp_path / "pie.png"
+    result = runner.invoke(
+        app,
+        [
+            "chart",
+            "-c",
+            str(collection_path),
+            "-d",
+            "Spanish",
+            "--date",
+            "2024-03-10",
+            "--out",
+            str(out),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert out.exists()
+    assert str(out) in result.output
+
+
+def test_chart_default_file_name(collection_path, tmp_path, monkeypatch):
+    _fill_reviews(collection_path)
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(
+        app, ["chart", "-c", str(collection_path), "-d", "Spanish", "--date", "2024-03-10"]
+    )
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "2024-03-10.png").exists()
+
+
 def test_module_is_executable():
     result = subprocess.run(
         [sys.executable, "-m", "ankivis", "--help"],
