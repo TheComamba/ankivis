@@ -146,11 +146,11 @@ def test_daily_intervals_no_decks(conn):
 # --- export_missing ----------------------------------------------------------------------
 
 
-def test_export_range_first_review_to_yesterday(conn, out_dir):
+def test_export_range_first_review_to_last_day(conn, out_dir):
     _history(conn)
     render = FakeRender()
     written = export_missing(
-        conn, [DECK, SUBDECK], out_dir, date(2024, 3, 6), tz=BERLIN, render=render
+        conn, [DECK, SUBDECK], out_dir, date(2024, 3, 5), tz=BERLIN, render=render
     )
     expected = _days(date(2024, 3, 1), date(2024, 3, 5))
     assert render.days == expected
@@ -163,16 +163,16 @@ def test_export_skips_existing_files(conn, out_dir):
     (out_dir / "2024-03-02.png").write_bytes(b"old")
     (out_dir / "2024-03-04.png").write_bytes(b"old")
     render = FakeRender()
-    export_missing(conn, [DECK, SUBDECK], out_dir, date(2024, 3, 6), tz=BERLIN, render=render)
+    export_missing(conn, [DECK, SUBDECK], out_dir, date(2024, 3, 5), tz=BERLIN, render=render)
     assert render.days == [date(2024, 3, 1), date(2024, 3, 3), date(2024, 3, 5)]
     assert (out_dir / "2024-03-02.png").read_bytes() == b"old"
 
 
 def test_export_is_idempotent(conn, out_dir):
     _history(conn)
-    export_missing(conn, [DECK], out_dir, date(2024, 3, 6), tz=BERLIN, render=FakeRender())
+    export_missing(conn, [DECK], out_dir, date(2024, 3, 5), tz=BERLIN, render=FakeRender())
     render = FakeRender()
-    written = export_missing(conn, [DECK], out_dir, date(2024, 3, 6), tz=BERLIN, render=render)
+    written = export_missing(conn, [DECK], out_dir, date(2024, 3, 5), tz=BERLIN, render=render)
     assert written == []
     assert render.calls == []
 
@@ -184,7 +184,7 @@ def test_export_passes_intervals_and_title(conn, out_dir):
         conn,
         [DECK, SUBDECK],
         out_dir,
-        date(2024, 3, 4),
+        date(2024, 3, 3),
         title="Spanish",
         tz=BERLIN,
         render=render,
@@ -195,17 +195,17 @@ def test_export_passes_intervals_and_title(conn, out_dir):
         assert intervals == intervals_at(conn, [DECK, SUBDECK], day, tz=BERLIN)
 
 
-def test_export_excludes_today(conn, out_dir):
+def test_export_includes_last_day(conn, out_dir):
     _history(conn)
     render = FakeRender()
-    export_missing(conn, [DECK], out_dir, date(2024, 3, 2), tz=BERLIN, render=render)
+    export_missing(conn, [DECK], out_dir, date(2024, 3, 1), tz=BERLIN, render=render)
     assert render.days == [date(2024, 3, 1)]
 
 
-def test_export_nothing_when_first_review_is_today(conn, out_dir):
+def test_export_nothing_when_last_day_before_first_review(conn, out_dir):
     _history(conn)
     render = FakeRender()
-    written = export_missing(conn, [DECK], out_dir, date(2024, 3, 1), tz=BERLIN, render=render)
+    written = export_missing(conn, [DECK], out_dir, date(2024, 2, 29), tz=BERLIN, render=render)
     assert written == []
     assert render.calls == []
 
@@ -221,7 +221,7 @@ def test_export_without_reviews(conn, out_dir):
 def test_export_creates_output_dir(conn, out_dir):
     _history(conn)
     out = out_dir / "a" / "b"
-    export_missing(conn, [DECK], out, date(2024, 3, 3), tz=BERLIN, render=FakeRender())
+    export_missing(conn, [DECK], out, date(2024, 3, 2), tz=BERLIN, render=FakeRender())
     assert (out / "2024-03-01.png").exists()
     assert (out / "2024-03-02.png").exists()
 
@@ -252,7 +252,7 @@ def test_export_failed_render_leaves_no_file(conn, out_dir):
 
 def test_export_with_real_renderer(conn, out_dir):
     _history(conn)
-    written = export_missing(conn, [DECK, SUBDECK], out_dir, date(2024, 3, 3), tz=BERLIN)
+    written = export_missing(conn, [DECK, SUBDECK], out_dir, date(2024, 3, 2), tz=BERLIN)
     assert [p.name for p in written] == ["2024-03-01.png", "2024-03-02.png"]
     for path in written:
         assert path.read_bytes().startswith(b"\x89PNG")

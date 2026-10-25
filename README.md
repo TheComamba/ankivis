@@ -64,12 +64,14 @@ _scripts/run.sh chart --deck Spanish --date 2024-03-10 --out spanish.png
 ### Daily images
 
 `export` renders one pie chart per day into a directory, from the day of the deck's first
-review up to yesterday (today is skipped because it is not over yet). Files are named
-`YYYY-MM-DD.png`. Days whose image already exists are skipped, so running the command again
-only adds the new days. To re-render a day, delete its image.
+review up to the date given with `--until` (inclusive). It defaults to yesterday, because
+today is not over yet; dates in the future are rejected. Files are named `YYYY-MM-DD.png`.
+Days whose image already exists are skipped, so running the command again only adds the new
+days. To re-render a day, delete its image.
 
 ```sh
-_scripts/run.sh export --deck Spanish --out frames/
+_scripts/run.sh export --deck Spanish --out frames/                     # up to yesterday
+_scripts/run.sh export --deck Spanish --out frames/ --until 2024-03-10
 ```
 
 ### Disclaimer

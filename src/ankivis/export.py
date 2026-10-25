@@ -118,30 +118,31 @@ def days_to_export(
     conn: sqlite3.Connection,
     deck_ids: Sequence[int],
     out_dir: Path | str,
-    today: date,
+    last: date,
     tz: tzinfo | None = None,
 ) -> list[date] | None:
-    """Missing days from the first review up to yesterday; ``None`` if there are no reviews.
+    """Missing days from the first review up to *last* (inclusive).
 
-    Today is excluded because its state may still change.
+    Returns ``None`` if there are no reviews. Callers usually pass yesterday as *last*, because
+    the state of today may still change.
     """
     first = first_review_date(conn, deck_ids, tz)
     if first is None:
         return None
-    return missing_days(out_dir, first, today - timedelta(days=1))
+    return missing_days(out_dir, first, last)
 
 
 def export_missing(
     conn: sqlite3.Connection,
     deck_ids: Sequence[int],
     out_dir: Path | str,
-    today: date,
+    last: date,
     title: str | None = None,
     tz: tzinfo | None = None,
     render: Renderer | None = None,
 ) -> list[Path]:
-    """Render every missing day from the first review up to yesterday; return the new paths."""
-    days = days_to_export(conn, deck_ids, out_dir, today, tz)
+    """Render every missing day from the first review up to *last*; return the new paths."""
+    days = days_to_export(conn, deck_ids, out_dir, last, tz)
     if not days:
         return []
     return list(export_days(conn, deck_ids, out_dir, days, title, tz, render))

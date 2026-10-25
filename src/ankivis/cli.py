@@ -1,7 +1,7 @@
 """Command line interface for ankivis."""
 
 import sqlite3
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Annotated
 
@@ -201,17 +201,31 @@ def export_command(
     profile: ProfileOption = None,
     deck: DeckOption = None,
     subdecks: SubdecksOption = True,
+    until: Annotated[
+        datetime | None,
+        typer.Option(
+            "--until",
+            help="Last date (YYYY-MM-DD, inclusive) to export. Defaults to yesterday.",
+            formats=["%Y-%m-%d"],
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
-    """Render one pie chart per day, from the first review up to yesterday.
+    """Render one pie chart per day, from the first review up to --until (default: yesterday).
 
     Days whose image already exists are skipped, so the export can be resumed or updated.
     """
+    today = _today()
+    last = until.date() if until is not None else today - timedelta(days=1)
+    if last > today:
+        typer.echo(f"Error: --until {last.isoformat()} lies in the future.", err=True)
+        raise typer.Exit(1)
     conn = _open(collection, profile)
     try:
         all_decks = list_decks(conn)
         selected = select_deck(all_decks, deck)
         ids = deck_ids(all_decks, selected, include_subdecks=subdecks)
-        days = days_to_export(conn, ids, out, _today())
+        days = days_to_export(conn, ids, out, last)
         if days is None:
             typer.echo(f"No reviews in {selected.name}; nothing to export.")
             return

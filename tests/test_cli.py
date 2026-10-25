@@ -248,6 +248,56 @@ def test_export_writes_missing_days(collection_path, tmp_path, monkeypatch):
     assert "up to date" in again.output.lower()
 
 
+def test_export_until_option(collection_path, tmp_path, monkeypatch):
+    _fill_reviews(collection_path)
+    out = tmp_path / "frames"
+    monkeypatch.setattr("ankivis.cli._today", lambda: date(2024, 2, 10))
+    result = runner.invoke(
+        app,
+        [
+            "export",
+            "-c",
+            str(collection_path),
+            "-d",
+            "Spanish",
+            "--out",
+            str(out),
+            "--until",
+            "2024-02-02",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert sorted(p.name for p in out.iterdir()) == ["2024-02-01.png", "2024-02-02.png"]
+    assert "Wrote 2 images" in result.output
+
+
+def test_export_until_today_is_allowed(collection_path, tmp_path, monkeypatch):
+    _fill_reviews(collection_path)
+    out = tmp_path / "frames"
+    monkeypatch.setattr("ankivis.cli._today", lambda: date(2024, 2, 2))
+    args = ["export", "-c", str(collection_path), "-d", "Spanish", "--out", str(out)]
+    result = runner.invoke(app, [*args, "--until", "2024-02-02"])
+    assert result.exit_code == 0, result.output
+    assert (out / "2024-02-02.png").exists()
+
+
+def test_export_until_in_future_is_rejected(collection_path, tmp_path, monkeypatch):
+    _fill_reviews(collection_path)
+    out = tmp_path / "frames"
+    monkeypatch.setattr("ankivis.cli._today", lambda: date(2024, 2, 2))
+    args = ["export", "-c", str(collection_path), "-d", "Spanish", "--out", str(out)]
+    result = runner.invoke(app, [*args, "--until", "2024-02-03"])
+    assert result.exit_code == 1
+    assert "future" in result.output
+    assert not out.exists()
+
+
+def test_export_until_rejects_invalid_date(collection_path, tmp_path):
+    args = ["export", "-c", str(collection_path), "-d", "Spanish", "--out", str(tmp_path)]
+    result = runner.invoke(app, [*args, "--until", "02.02.2024"])
+    assert result.exit_code != 0
+
+
 def test_export_without_reviews(collection_path, tmp_path):
     out = tmp_path / "frames"
     result = runner.invoke(
