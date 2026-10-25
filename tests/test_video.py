@@ -4,8 +4,18 @@ from pathlib import Path
 import imageio.v2 as imageio
 import numpy as np
 import pytest
+from PIL import Image
 
-from ankivis.video import NoFramesError, flatten, frame_paths, make_video, parse_color
+from ankivis.video import (
+    NoFramesError,
+    VideoFormat,
+    flatten,
+    frame_paths,
+    gif_durations,
+    make_video,
+    parse_color,
+    resolve_format,
+)
 
 SIZE = 32  # divisible by 16, so the encoder does not resize the frames
 
@@ -142,3 +152,75 @@ def test_make_video_reports_progress(tmp_path):
     seen: list[Path] = []
     make_video(tmp_path, tmp_path / "video.mp4", on_frame=seen.append)
     assert [p.name for p in seen] == ["2024-01-01.png", "2024-01-02.png", "2024-01-03.png"]
+
+
+def test_resolve_format():
+    assert resolve_format("a.mp4", None) is VideoFormat.MP4
+    assert resolve_format("a.GIF", None) is VideoFormat.GIF
+    assert resolve_format("a.bin", None) is VideoFormat.MP4
+    assert resolve_format(None, None) is VideoFormat.MP4
+    assert resolve_format(None, "gif") is VideoFormat.GIF
+    assert resolve_format("a.bin", "GIF") is VideoFormat.GIF
+    assert resolve_format("a.gif", VideoFormat.GIF) is VideoFormat.GIF
+    with pytest.raises(ValueError, match="does not match"):
+        resolve_format("a.mp4", "gif")
+    with pytest.raises(ValueError, match="unknown format"):
+        resolve_format("a.mp4", "avi")
+
+
+def test_gif_durations_average_to_fps():
+    assert gif_durations(3, 10) == [100, 100, 100]
+    durations = gif_durations(30, 30)
+    assert set(durations) == {30, 40}
+    assert sum(durations) == 1000
+    assert gif_durations(0, 10) == []
+
+
+def test_make_video_writes_gif(tmp_path):
+    frames = tmp_path / "frames"
+    frames.mkdir()
+    _frame(frames / "2024-01-01.png", (255, 0, 0, 255))
+    _frame(frames / "2024-01-02.png", (0, 0, 255, 0))  # fully transparent
+    _frame(frames / "2024-01-03.png", (0, 0, 255, 255))
+    out = tmp_path / "progress.gif"
+    seen: list[Path] = []
+
+    count = make_video(frames, out, fps=5, background=(255, 255, 255), on_frame=seen.append)
+
+    assert count == 3
+    assert len(seen) == 3
+    assert not list(tmp_path.glob(".*partial*"))
+    with Image.open(out) as gif:
+        assert gif.format == "GIF"
+        assert gif.n_frames == 3
+        assert gif.info.get("loop") == 0
+        colours, durations = [], []
+        for i in range(gif.n_frames):
+            gif.seek(i)
+            durations.append(gif.info["duration"])
+            colours.append(gif.convert("RGB").getpixel((SIZE // 2, SIZE // 2)))
+    assert colours == [(255, 0, 0), (255, 255, 255), (0, 0, 255)]
+    assert durations == [200, 200, 200]
+
+
+def test_make_video_gif_with_explicit_format(tmp_path):
+    _frame(tmp_path / "2024-01-01.png", (0, 255, 0, 255))
+    out = tmp_path / "out" / "anim.bin"
+    make_video(tmp_path, out, fmt="gif")
+    assert out.read_bytes()[:6] == b"GIF89a"
+
+
+def test_make_video_gif_rejects_mismatched_frame_sizes(tmp_path):
+    _frame(tmp_path / "2024-01-01.png", (255, 0, 0, 255))
+    _frame(tmp_path / "2024-01-02.png", (255, 0, 0, 255), size=48)
+    out = tmp_path / "video.gif"
+    with pytest.raises(ValueError, match="2024-01-02.png"):
+        make_video(tmp_path, out)
+    assert not out.exists()
+    assert not list(tmp_path.glob(".*partial*"))
+
+
+def test_make_video_gif_rejects_too_high_fps(tmp_path):
+    _frame(tmp_path / "2024-01-01.png", (255, 0, 0, 255))
+    with pytest.raises(ValueError, match="GIF"):
+        make_video(tmp_path, tmp_path / "video.gif", fps=60)
