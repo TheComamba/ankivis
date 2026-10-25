@@ -62,6 +62,13 @@ def test_title_contains_date_and_counts():
     assert "2024-03-10" in text
     assert "3 cards" in text
     assert "2 learned" in text
+    assert "(67%)" in text
+
+
+def test_title_percentage_without_cards():
+    fig = build_figure({}, DAY)
+    text = fig.texts[0].get_text() if fig.texts else fig.axes[0].get_title()
+    assert "0 cards, 0 learned (0%)" in text
 
 
 def test_render_creates_png_with_fixed_dimensions(tmp_path):

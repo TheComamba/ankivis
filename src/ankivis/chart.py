@@ -54,7 +54,8 @@ def _title(intervals: Mapping[int, float | None], day: date, title: str | None) 
     learned = sum(1 for ivl in intervals.values() if ivl is not None)
     heading = day.isoformat() if title is None else f"{title} – {day.isoformat()}"
     noun = "card" if total == 1 else "cards"
-    return f"{heading}\n{total} {noun}, {learned} learned"
+    percent = 100 * learned / total if total else 0.0
+    return f"{heading}\n{total} {noun}, {learned} learned ({percent:.0f}%)"
 
 
 def _add_legend(fig: Figure) -> None:
