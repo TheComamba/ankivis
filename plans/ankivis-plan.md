@@ -1,5 +1,12 @@
 # ankivis – Implementation Plan
 
+> **Historical document.** This is the original plan the project was built from. It has been
+> fully implemented and is no longer maintained, and some details have changed since (e.g. the
+> `hello` command was removed, Anki's data folder is found on all platforms, GIF output and
+> `--size` were added, and plain `venv` + pip is used instead of `uv`). See
+> [README.md](../README.md) for the current behaviour and [CHANGELOG.md](../CHANGELOG.md) for
+> the releases.
+
 Every PR follows TDD: write tests → run them and confirm they **fail** → implement → confirm they **pass**.
 Tests never touch the real Anki collection; they use a small synthetic SQLite fixture that mirrors the Anki schema
 (`col`, `decks`, `cards`, `notes`, `revlog`).

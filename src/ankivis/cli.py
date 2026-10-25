@@ -7,6 +7,7 @@ from typing import Annotated
 
 import typer
 
+from ankivis import __version__
 from ankivis.chart import DEFAULT_SIZE, MIN_SIZE, render_pie
 from ankivis.db import ProfileError, default_collection_path, open_collection
 from ankivis.decks import Deck, deck_ids, find_deck, format_deck_list, list_decks, pick_deck
@@ -73,8 +74,25 @@ SizeOption = Annotated[
 ]
 
 
+def _print_version(value: bool) -> None:
+    if value:
+        typer.echo(f"ankivis {__version__}")
+        raise typer.Exit()
+
+
 @app.callback()
-def main() -> None:
+def main(
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            "-V",
+            help="Show the version and exit.",
+            callback=_print_version,
+            is_eager=True,
+        ),
+    ] = False,
+) -> None:
     """Visualise learning progress for an Anki deck."""
 
 

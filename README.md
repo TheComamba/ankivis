@@ -1,9 +1,35 @@
 # ankivis
 Visualise learning progress for an Anki deck.
 
-![Learning progress of a Neo-Quenya deck up to 2024-12-03](demo.gif)
+![Learning progress of a Neo-Quenya deck up to 2024-12-03](https://raw.githubusercontent.com/TheComamba/ankivis/main/demo.gif)
 
-## Scripts
+## Installation
+
+ankivis needs Python 3.12 or newer. Install it as a command line tool, e.g. with
+[pipx](https://pipx.pypa.io/):
+
+```sh
+pipx install git+https://github.com/TheComamba/ankivis.git
+# or, into the current environment:
+pip install git+https://github.com/TheComamba/ankivis.git
+```
+
+Then run `ankivis --help`, and `ankivis --version` to show the installed version. ffmpeg is
+bundled; no other system dependencies are needed. See [CHANGELOG.md](CHANGELOG.md) for the
+release history.
+
+### Supported platforms
+
+ankivis itself runs on Linux, macOS and Windows; CI tests all three with Python 3.12 and 3.13.
+The developer scripts in `_scripts/` are bash scripts for Linux and macOS. On Windows, use
+`pip install -e ".[dev]"`, `ruff` and `pytest` directly instead.
+
+## Development
+
+Clone the repository and use the scripts below. The usage examples in this README call
+`_scripts/run.sh`; with an installed package, replace it by `ankivis`.
+
+### Scripts
 
 All scripts can be called from any directory and use the virtual environment in `.venv/`.
 
@@ -48,6 +74,17 @@ _scripts/run.sh decks --collection path/to/collection.anki2
 _scripts/run.sh decks --pick                            # pick interactively (number, name or id)
 _scripts/run.sh decks --deck "Spanish::Verbs"           # select by name or id
 _scripts/run.sh decks --deck Spanish --no-subdecks      # exclude subdecks
+```
+
+### Largest intervals
+
+`intervals` prints the cards with the largest intervals in a deck at the end of a day (today by
+default), e.g. to check the data before rendering. `--top` (`-n`) sets the number of cards
+(default 10), `--date` the day. Learning steps shorter than a day are shown in minutes.
+
+```sh
+_scripts/run.sh intervals --deck Spanish                        # top 10 today
+_scripts/run.sh intervals --deck Spanish --top 3 --date 2024-03-10
 ```
 
 ### Pie chart

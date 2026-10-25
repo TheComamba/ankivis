@@ -13,6 +13,7 @@
 #   DEMO_DECK    deck name or id      (default: Neo-Quenya)
 #   DEMO_UNTIL   last rendered date   (default: 2024-12-03)
 #   DEMO_FPS     frames per second    (default: 10)
+#   DEMO_SIZE    frame size in pixels (default: 400)
 
 set -euo pipefail
 
