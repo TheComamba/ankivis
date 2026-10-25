@@ -26,7 +26,7 @@ def end_of_day_ms(day: date, tz: tzinfo | None = None) -> int:
     return round(next_midnight.timestamp()) * 1000 - 1
 
 
-def _deck_filter(deck_ids: Sequence[int]) -> tuple[str, list[int]]:
+def deck_filter(deck_ids: Sequence[int]) -> tuple[str, list[int]]:
     """SQL condition matching cards whose (original) deck is in *deck_ids*.
 
     Cards in a filtered deck keep their home deck in ``odid``.
@@ -35,7 +35,8 @@ def _deck_filter(deck_ids: Sequence[int]) -> tuple[str, list[int]]:
     return f"(CASE WHEN c.odid != 0 THEN c.odid ELSE c.did END) IN ({placeholders})", list(deck_ids)
 
 
-def _to_days(ivl: int | None, rtype: int | None) -> float | None:
+def revlog_interval_days(ivl: int | None, rtype: int | None) -> float | None:
+    """Convert a revlog row's ``ivl``/``type`` to days; ``None`` for missing rows and resets."""
     if ivl is None or (rtype == REVLOG_MANUAL and ivl == 0):
         return None
     if ivl > 0:
@@ -63,7 +64,7 @@ def intervals_at(
     if not deck_ids:
         return {}
     cutoff = end_of_day_ms(day, tz)
-    condition, params = _deck_filter(deck_ids)
+    condition, params = deck_filter(deck_ids)
     rows = conn.execute(
         f"""
         SELECT c.id, r.ivl, r.type
@@ -77,7 +78,7 @@ def intervals_at(
         """,
         [cutoff, cutoff, *params],
     ).fetchall()
-    return {int(cid): _to_days(ivl, rtype) for cid, ivl, rtype in rows}
+    return {int(cid): revlog_interval_days(ivl, rtype) for cid, ivl, rtype in rows}
 
 
 def largest_intervals(intervals: dict[int, float | None], n: int = 10) -> list[tuple[int, float]]:
@@ -108,7 +109,7 @@ def first_review_date(
     """
     if not deck_ids:
         return None
-    condition, params = _deck_filter(deck_ids)
+    condition, params = deck_filter(deck_ids)
     row = conn.execute(
         f"""
         SELECT min(r.id) FROM revlog AS r

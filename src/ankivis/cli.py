@@ -10,6 +10,7 @@ import typer
 from ankivis.chart import render_pie
 from ankivis.db import ProfileError, default_collection_path, open_collection
 from ankivis.decks import Deck, deck_ids, find_deck, format_deck_list, list_decks, pick_deck
+from ankivis.export import days_to_export, export_days
 from ankivis.history import format_interval, intervals_at, largest_intervals
 
 app = typer.Typer(
@@ -183,3 +184,45 @@ def chart_command(
     path = out if out is not None else Path(f"{target.isoformat()}.png")
     render_pie(intervals, target, path, title=selected.name)
     typer.echo(f"Wrote {path}")
+
+
+@app.command("export")
+def export_command(
+    out: Annotated[
+        Path,
+        typer.Option(
+            "--out",
+            "-o",
+            help="Output directory for the YYYY-MM-DD.png images (created if missing).",
+            file_okay=False,
+        ),
+    ],
+    collection: CollectionOption = None,
+    profile: ProfileOption = None,
+    deck: DeckOption = None,
+    subdecks: SubdecksOption = True,
+) -> None:
+    """Render one pie chart per day, from the first review up to yesterday.
+
+    Days whose image already exists are skipped, so the export can be resumed or updated.
+    """
+    conn = _open(collection, profile)
+    try:
+        all_decks = list_decks(conn)
+        selected = select_deck(all_decks, deck)
+        ids = deck_ids(all_decks, selected, include_subdecks=subdecks)
+        days = days_to_export(conn, ids, out, _today())
+        if days is None:
+            typer.echo(f"No reviews in {selected.name}; nothing to export.")
+            return
+        if not days:
+            typer.echo(f"All images in {out} are up to date.")
+            return
+        paths = export_days(conn, ids, out, days, title=selected.name)
+        with typer.progressbar(paths, length=len(days), label="Rendering") as bar:
+            for _ in bar:
+                pass
+    finally:
+        conn.close()
+    noun = "image" if len(days) == 1 else "images"
+    typer.echo(f"Wrote {len(days)} {noun} to {out}")

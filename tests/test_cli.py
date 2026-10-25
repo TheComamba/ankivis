@@ -222,6 +222,47 @@ def test_chart_default_file_name(collection_path, tmp_path, monkeypatch):
     assert (tmp_path / "2024-03-10.png").exists()
 
 
+def test_export_writes_missing_days(collection_path, tmp_path, monkeypatch):
+    _fill_reviews(collection_path)
+    out = tmp_path / "frames"
+    out.mkdir()
+    (out / "2024-02-02.png").write_bytes(b"old")
+    monkeypatch.setattr("ankivis.cli._today", lambda: date(2024, 2, 4))
+    result = runner.invoke(
+        app, ["export", "-c", str(collection_path), "-d", "Spanish", "--out", str(out)]
+    )
+    assert result.exit_code == 0, result.output
+    assert sorted(p.name for p in out.iterdir()) == [
+        "2024-02-01.png",
+        "2024-02-02.png",
+        "2024-02-03.png",
+    ]
+    assert (out / "2024-02-02.png").read_bytes() == b"old"
+    assert (out / "2024-02-01.png").read_bytes().startswith(b"\x89PNG")
+    assert "Wrote 2 images" in result.output
+
+    again = runner.invoke(
+        app, ["export", "-c", str(collection_path), "-d", "Spanish", "--out", str(out)]
+    )
+    assert again.exit_code == 0, again.output
+    assert "up to date" in again.output.lower()
+
+
+def test_export_without_reviews(collection_path, tmp_path):
+    out = tmp_path / "frames"
+    result = runner.invoke(
+        app, ["export", "-c", str(collection_path), "-d", "Spanish", "--out", str(out)]
+    )
+    assert result.exit_code == 0, result.output
+    assert "No reviews in Spanish" in result.output
+    assert not out.exists()
+
+
+def test_export_requires_out(collection_path):
+    result = runner.invoke(app, ["export", "-c", str(collection_path), "-d", "Spanish"])
+    assert result.exit_code != 0
+
+
 def test_module_is_executable():
     result = subprocess.run(
         [sys.executable, "-m", "ankivis", "--help"],
