@@ -1,23 +1,22 @@
 # ankivis
 Visualise learning progress for an Anki deck.
 
-## Development setup
+## Scripts
 
-```sh
-python3 -m venv .venv
-.venv/bin/pip install -e ".[dev]"
-```
+All scripts can be called from any directory and use the virtual environment in `.venv/`.
+
+| Script | Purpose |
+|---|---|
+| `_scripts/setup.sh` | Create `.venv` and install ankivis with dev dependencies |
+| `_scripts/run.sh [ARGS]` | Run ankivis, e.g. `_scripts/run.sh --help` |
+| `_scripts/test.sh [PYTEST ARGS]` | Run ruff (lint + format check) and pytest |
+| `_scripts/update.sh` | Upgrade all dependencies to the newest allowed versions |
+
+Shared logic lives in `_scripts/lib/shared.sh`.
 
 ## Usage
 
 ```sh
-.venv/bin/ankivis --help
-.venv/bin/ankivis hello
-```
-
-## Tests and linting
-
-```sh
-.venv/bin/pytest
-.venv/bin/ruff check . && .venv/bin/ruff format --check .
+_scripts/setup.sh
+_scripts/run.sh hello
 ```
