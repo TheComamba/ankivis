@@ -269,9 +269,15 @@ def video_command(
         ),
     ],
     out: Annotated[
-        Path,
-        typer.Option("--out", "-o", help="Output MP4 file.", dir_okay=False),
-    ] = Path("progress.mp4"),
+        Path | None,
+        typer.Option(
+            "--out",
+            "-o",
+            help="Output MP4 file. Defaults to progress.mp4 in the --in directory.",
+            dir_okay=False,
+            show_default=False,
+        ),
+    ] = None,
     fps: Annotated[
         float, typer.Option("--fps", min=0.01, help="Frames (days) per second.")
     ] = DEFAULT_FPS,
@@ -304,6 +310,8 @@ def video_command(
 ) -> None:
     """Combine the daily images into an H.264 MP4 video, in chronological order."""
     bg = _parse_background(background)
+    if out is None:
+        out = img_dir / "progress.mp4"
     first = start.date() if start is not None else None
     last = end.date() if end is not None else None
     try:

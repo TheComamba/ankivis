@@ -332,14 +332,16 @@ def test_video_writes_mp4(tmp_path):
     assert str(out) in result.output
 
 
-def test_video_default_output_name(tmp_path, monkeypatch):
+def test_video_default_output_in_input_dir(tmp_path, monkeypatch):
     frames = tmp_path / "frames"
     _write_frames(frames, ["2024-01-01.png"])
     monkeypatch.chdir(tmp_path)
     result = runner.invoke(app, ["video", "--in", str(frames)])
     assert result.exit_code == 0, result.output
-    assert (tmp_path / "progress.mp4").exists()
+    assert (frames / "progress.mp4").exists()
+    assert not (tmp_path / "progress.mp4").exists()
     assert "Wrote 1 frame " in result.output
+    assert str(frames / "progress.mp4") in result.output
 
 
 def test_video_date_range(tmp_path):

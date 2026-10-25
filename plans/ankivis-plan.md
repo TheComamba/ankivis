@@ -75,7 +75,7 @@ tests/test_*.py
 
 ## PR 6 – Video
 - `video.py`: `make_video(img_dir, out_path, fps=10)` sorts `YYYY-MM-DD.png` frames chronologically, flattens transparency onto a background colour (MP4 has no alpha), and writes H.264 MP4 via imageio.
-- CLI: `ankivis video --in DIR --out progress.mp4 --fps N`
+- CLI: `ankivis video --in DIR [--out FILE] --fps N` (`--out` defaults to `DIR/progress.mp4`)
 - Tests: 3 tiny frames → video file exists with 3 frames (read back via imageio); non-date files are ignored; an empty dir gives a clear error.
 
 ---
